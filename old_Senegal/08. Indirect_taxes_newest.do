@@ -34,29 +34,16 @@
 
 *We will use household purchases per product to estimate weighted shares of VAT rates, exemptions and informality at the sector level
 
+use "$presim/05_purchases_hhid_codpr.dta", clear 
+merge n:1 hhid using "$data_sn\ehcvm_conso_SEN2018_menage.dta" , nogen keepusing(hhweight)
 
-global data_sn "C:\Users\wb621266\OneDrive - WBG\Mausim_2024\01_data\01_raw\EPCV_2019\Datain"
-global presim "C:\Users\wb621266\OneDrive - WBG\Mausim_2024\01_data\02_pre_sim"
-global tool "C:\Users\wb621266\OneDrive - WBG\Mausim_2024\03. Tool\SN_Sim_tool_Gabriel_raw.xlsx"
+collapse (sum) depan [fw=hhweight], by(codpr)
 
-global devmode = 0
+merge 1:m codpr using "$data_sn/IO_percentage3.dta", nogen
 
-
-use "$presim/05_purchases_hhid_codpr.dta", clear
-
-ren (Prod dep) (codpr depan)
-
-*merge n:1 hhid using "$data_sn\ehcvm_conso_SEN2018_menage.dta" , nogen keepusing(hhweight) ///////
-
-collapse (sum) depan /*[iw=hhweight]*/, by(codpr)
-
-merge 1:1 codpr using "$presim/IO.dta", nogen keepusing(sector)
-
-merge 1:1 codpr using "$presim/VAT.dta", nogen keepusing(coicop TVA formelle exempted) /////// 
-
-/*
 tempfile prod_weights
-save `prod_weights'
+save `prod_weights', replace
+
 
 use `prod_weights', clear
 gen TVA=.
@@ -66,31 +53,31 @@ gen exempted=.
 levelsof codpr, local(produits)
 foreach prod of local produits {
 	replace TVA      = ${vatrate_`prod'} if codpr==`prod'
-	*replace formelle = ${vatform_`prod'} if codpr==`prod'
+	replace formelle = ${vatform_`prod'} if codpr==`prod'
 	replace exempted = ${vatexem_`prod'} if codpr==`prod'
 }
-*/
+
 replace depan      = 0 if depan==.
-*replace depan      = depan*pourcentage
+replace depan      = depan*pourcentage
 
 *1.1.2. Product data --> Sector data
 
-collapse (mean) TVA (sum) depan [iw=depan], by(sector exempted)
+collapse (mean) TVA (sum) depan [iw=depan], by(Secteur exempted)
 
 tempfile VAT_secteurs_exempted
 save `VAT_secteurs_exempted', replace
 
-collapse (mean) TVA exempted [iw=depan], by(sector)
+collapse (mean) TVA exempted [iw=depan], by(Secteur)
 
 tempfile secteurs
 save `secteurs', replace
 
 *1.1.3. Sector data --> IO matrix y vatmat
 
-import excel "$tool", sheet("IO_sect17") firstrow clear
-drop if sector==.
+import excel "$data_sn\IO_Matrix.xlsx", sheet("Sheet1") firstrow clear
+drop if Secteur==.
 
-merge 1:1 sector using `secteurs', nogen
+merge 1:1 Secteur using `secteurs', nogen
 
 rename exempted VAT_exempt_share
 gen VAT_exempt=0 if VAT_exempt_share==0
@@ -112,11 +99,7 @@ replace TVA=0.09 if TVA==.
 tempfile io_original_SY 
 save `io_original_SY', replace 
 
-*drop if sector==23
-*drop sect_23
-
- 
-vatmat sect_1-sect_23, exempt(VAT_exempt) pexempt(VAT_exempt_share) sector(sector)
+vatmat C1-C35, exempt(VAT_exempt) pexempt(VAT_exempt_share) sector(Secteur)
 
 
 
@@ -127,15 +110,16 @@ noi dis as result " 1. Effet indirect de la politique de TVA"
 
 
 *Fixed sectors 
-local thefixed 8 // electricite, gaz et eau - activites d'administration pub - education et formation - activites de sante et action s - raffinage petrole, cokefaction
+local thefixed 22 32 33 34 13 // electricite, gaz et eau - activites d'administration pub - education et formation - activites de sante et action s - raffinage petrole, cokefaction
 
 gen fixed=0
 foreach var of local thefixed {
-	replace fixed=1  if  sector==`var'
+	replace fixed=1  if  Secteur==`var'
 }
 
 *VAT rates (sector level VAT)
-merge m:1 sector using `io_original_SY', /*assert(master matched)*/ keepusing(TVA) nogen
+merge m:1 Secteur using `io_original_SY', assert(master matched) keepusing(TVA) nogen
+
 
 *No price control sectors 
 gen cp=1-fixed
@@ -145,16 +129,16 @@ gen vatable=1-fixed-exempted
 replace vatable = 0 if vatable==-1 //Sectors that are fixed and exempted are not VATable
 
 *Indirect effects 
-vatpush sector_1-sector_45 , exempt(exempted) costpush(cp) shock(TVA) vatable(vatable) gen(TVA_indirect)
+vatpush sector_1-sector_69 , exempt(exempted) costpush(cp) shock(TVA) vatable(vatable) gen(TVA_indirect)
 
 
-keep sector TVA TVA_indirect fixed exempted
+keep Secteur TVA TVA_indirect fixed exempted
 rename TVA TVA_mean_sector
 
 tempfile ind_effect_VAT
 save `ind_effect_VAT'
 
-gab
+
 
 /*==================================================================
 -------------------------------------------------------------------*
@@ -175,7 +159,7 @@ foreach prod of global products {
 	qui replace TVA      = ${vatrate_`prod'} if codpr==`prod' in `i'
 	qui replace formelle = ${vatform_`prod'} if codpr==`prod' in `i'
 	qui replace exempted = ${vatexem_`prod'} if codpr==`prod' in `i'
-	local i=i+1
+	local ++i
 }
 tempfile VATrates
 save `VATrates'
@@ -195,7 +179,7 @@ gen TVA_direct = achats_avec_excises * TVA * (1-informal_purchase)
 *Water and electricity have special VAT policies
 
 
-/*Electricity:
+*Electricity:
 
 foreach payment in  0 1 {	
 	if "`payment'"=="1" local tpay "W"			// Prepaid (Woyofal)
@@ -259,7 +243,7 @@ replace TVA_eau = TVA_eau*(1-informal_purchase)*6
 replace TVA_direct = TVA_elec if codpr==334
 replace TVA_direct = TVA_eau  if codpr==332
 
-*/
+
 
 *-------------------------------------------------------------------*
 *		Merging direct and indirect VAT, and confirmation
@@ -314,7 +298,7 @@ if $devmode== 1 {
 tempfile VAT_taxes
 save `VAT_taxes'
 
-gab
+
 
 
 

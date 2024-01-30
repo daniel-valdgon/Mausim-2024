@@ -15,70 +15,9 @@
 dis "=================  Settings 	==============="
 *==================================================================================
 
-global data_sn "C:\Users\wb621266\OneDrive - WBG\Mausim_2024\01_data\01_raw\EPCV_2019\Datain"
-global presim "C:\Users\wb621266\OneDrive - WBG\Mausim_2024\01_data\02_pre_sim"
-global tool "C:\Users\wb621266\OneDrive - WBG\Mausim_2024\03. Tool\SN_Sim_tool_Gabriel_raw.xlsx"
-global path "C:\Users\wb621266\OneDrive - WBG\Mausim_2024"
-global thedo        "$path/02. Dofile"
-global theado       "$thedo/ado" 
-global devmode = 0
-
-* Ado files /// Temp
-local files : dir "$theado" files "*.ado"
-foreach f of local files{
-	cap run "$theado\\`f'"
-}
-
-
-
-* products-sector on dta..
-import excel "$tool", sheet("Prod") firstrow clear
-
-save "$presim\IO.dta", replace
-
-* VAT  
-
-import excel "$tool", sheet("TVA") firstrow clear
-save "$presim\VAT.dta", replace
-
-drop produit
-drop if codpr==.
-*recode elasticities (.=0)
-tempfile VAT_original
-save `VAT_original'
-levelsof codpr, local(products)
-global products "`products'"
-foreach z of local products {
-	*dis `z'
-	levelsof TVA          if codpr==`z', local(vatrate)
-		global vatrate_`z' `vatrate'
-	*levelsof formelle     if codpr==`z', local(vatform)
-	*	global vatform_`z' `vatform'
-	*levelsof exempted     if codpr==`z', local(vatexem)
-		global vatexem_`z' `vatexem'
-	*levelsof elasticities if codpr==`z', local(vatelas)
-	*	global vatelas_`z' `vatelas'
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 //Note: This implies  a change with respect the tool was designed so we are just inserting this change for certain sheets at a time: 
 	// sheet CMU_raw (NONE but coming)
-/*	
+	
 import excel "$xls_sn", sheet(settingshide) first clear
 
 levelsof cat, local(params)
@@ -625,6 +564,6 @@ if $save_scenario ==1{
 	
 	export excel "$xls_sn", sheet(legend, modify) cell(AH2)
 }
-*/
+
  
 

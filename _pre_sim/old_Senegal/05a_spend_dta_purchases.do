@@ -1,6 +1,5 @@
 
 
-
 use "$data_sn/Senegal_consumption_all_by_product.dta", clear
 merge n:1  grappe menage using "$data_sn\ehcvm_conso_SEN2018_menage.dta" , nogen keepusing (hhid hhweight)
 
