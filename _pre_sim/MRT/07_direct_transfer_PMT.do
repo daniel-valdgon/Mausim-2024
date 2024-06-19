@@ -613,11 +613,56 @@ save "$data_sn/PMT_EPCV_harmonized",replace
 **
 
 
+
+use "$data_sn/Datain/menage_2019.dta", clear
+
+keep hid wilaya moughataa commune milieu A10*
+
+ren hid hhid
+
+merge 1:1 hhid using "$presim/01_menages.dta" , nogen keepusing(hhweight hhsize) keep(3)
+
+ren hhid hid
+
+merge 1:m hid using "$data_sn/Datain/individus_2019.dta", gen(mr_id) keepusing(B1 B2 B4 B5 PS* C*) //keep(2 3)
+
+keep hid A* B1 B2 B4 B5 wilaya moughataa commune milieu hhweight hhsize PS1 PS2 PS4* PS5* PS6* PS7 C*
+
+forvalues i = 1/6 {
+	gen prog_`i' = (PS4A == `i' | PS4B == `i' | PS4C == `i')
+	egen hh_prog_`i' = max(prog_`i'), by(hid)
+	
+	gen prog_amount_`i' = PS7 if prog_`i' == 1
+	egen hh_prog_amount_`i' = total(prog_amount_`i'), by(hid)
+	
+	egen hh_prog_amount_max_`i' = max(prog_amount_`i'), by(hid)
+}
+
+
+keep hid hhweight hhsize wilaya moughataa commune milieu hh_prog*
+
+global prog hh_prog_1 hh_prog_2 hh_prog_3 hh_prog_4 hh_prog_5 hh_prog_6
+ 
+global prog_amount hh_prog_amount_1 hh_prog_amount_2 hh_prog_amount_3 hh_prog_amount_4 hh_prog_amount_5 hh_prog_amount_6
+
+global prog_amount_max hh_prog_amount_max_1 hh_prog_amount_max_2 hh_prog_amount_max_3 hh_prog_amount_max_4 hh_prog_amount_max_5 hh_prog_amount_max_6
+
+egen hh_prog_n = rowtotal($prog)
+egen hh_prog_amount_n = rowtotal($prog_amount)
+egen hh_prog_amount_max_n = rowtotal($prog_amount_max)
+
+gen hh_prog = hh_prog_n>0
+
+gduplicates drop
+
+save "$data_sn/program_EPCV.dta",replace
+
 /// PMT
 
 *==========================================================
 *Data checking 
 *==========================================================
+
 
 use "$data_sn/PMT_EPCV_harmonized", clear
 
@@ -789,48 +834,7 @@ save "$presim/07_dir_trans_PMT.dta", replace
 dis "==============         Defining benefits from education system		==========="
 *==================================================================================
 
-use "$data_sn/Datain/menage_2019.dta", clear
 
-keep hid wilaya moughataa commune milieu A10*
-
-ren hid hhid
-
-merge 1:1 hhid using "$presim/01_menages.dta" , nogen keepusing(hhweight hhsize) keep(3)
-
-ren hhid hid
-
-merge 1:m hid using "$data_sn/Datain/individus_2019.dta", gen(mr_id) keepusing(B1 B2 B4 B5 PS* C*) //keep(2 3)
-
-keep hid A* B1 B2 B4 B5 wilaya moughataa commune milieu hhweight hhsize PS1 PS2 PS4* PS5* PS6* PS7 C*
-
-forvalues i = 1/6 {
-	gen prog_`i' = (PS4A == `i' | PS4B == `i' | PS4C == `i')
-	egen hh_prog_`i' = max(prog_`i'), by(hid)
-	
-	gen prog_amount_`i' = PS7 if prog_`i' == 1
-	egen hh_prog_amount_`i' = total(prog_amount_`i'), by(hid)
-	
-	egen hh_prog_amount_max_`i' = max(prog_amount_`i'), by(hid)
-}
-
-
-keep hid hhweight hhsize wilaya moughataa commune milieu hh_prog*
-
-global prog hh_prog_1 hh_prog_2 hh_prog_3 hh_prog_4 hh_prog_5 hh_prog_6
- 
-global prog_amount hh_prog_amount_1 hh_prog_amount_2 hh_prog_amount_3 hh_prog_amount_4 hh_prog_amount_5 hh_prog_amount_6
-
-global prog_amount_max hh_prog_amount_max_1 hh_prog_amount_max_2 hh_prog_amount_max_3 hh_prog_amount_max_4 hh_prog_amount_max_5 hh_prog_amount_max_6
-
-egen hh_prog_n = rowtotal($prog)
-egen hh_prog_amount_n = rowtotal($prog_amount)
-egen hh_prog_amount_max_n = rowtotal($prog_amount_max)
-
-gen hh_prog = hh_prog_n>0
-
-gduplicates drop
-
-save "$data_sn/program_EPCV.dta",replace
 
 
 use "$data_sn/Datain/individus_2019.dta", clear
