@@ -27,7 +27,13 @@ Check new poverty estimates
 *****************************************************************************
 
 
-use "$data_sn/ehcvm_conso_SEN2018_menage.dta", clear
+
+use "$presim/01_menages.dta", clear
+
+foreach var in csh_mutsan am_bourse am_subCMU am_sesame am_moin5 am_cesarienne  {
+	gen `var'=0
+} 
+
 
 /* Disposable Income in the gross up */
 gen double yd_pre=round(dtot/hhsize,0.01)
@@ -55,12 +61,14 @@ merge 1:1 hhid using `Transfers_InKind' , nogen
 *All policies, regarless of them being taxes or subsidies, should be positive 
 
 *Gross market income that is going to be used as basis of all calculations:
-merge 1:1 hhid using "$data_sn/gross_ymp_pc.dta" , nogen
+*merge 1:1 hhid using "$presim/gross_ymp_pc.dta" , nogen
+gen ymp_pc=yd_pre
 
 	local Directaxes 		"income_tax trimf"
 	local Contributions 	"csh_css csh_ipm csh_mutsan" //(AGV) Note that csh_mutsan is created in 4.DirTransfers and not in 3.SSC (as it should). csp_ipr csp_fnr excluded because, in PDI, pension contributions are not included.
-	local DirectTransfers   "am_bourse am_Cantine am_BNSF am_subCMU"
-	local subsidies         "subsidy_elec_direct subsidy_elec_indirect subsidy_fuel_direct subsidy_fuel_indirect subsidy_eau_direct subsidy_eau_indirect subsidy_agric"
+	local DirectTransfers   "am_bourse am_Cantine am_BNSF1 am_BNSF2 am_subCMU rev_pubstu rev_universel"
+	
+	local subsidies         "subsidy_elec_direct subsidy_elec_indirect subsidy_fuel_direct subsidy_fuel_indirect subsidy_eau_direct subsidy_eau_indirect "
 	local Indtaxes 			"excise_taxes TVA_direct TVA_indirect"
 	local InKindTransfers	"education_inKind Sante_inKind am_sesame am_moin5 am_cesarienne" //(AGV) Note that  am_sesame am_moin5 am_cesarienne are created in the direct transfers file, but they act more like in kind transfers
 	local taxcs 			`Directaxes' `Indtaxes' `Contributions'
@@ -91,6 +99,7 @@ merge 1:1 hhid using "$data_sn/gross_ymp_pc.dta" , nogen
 	foreach i in `Indtaxes_pc' `Directaxes_pc' `Contributions_pc' {
 		replace `i'=-`i'
 	}
+	
 	
 *************************************** NET MARKET INCOME  ---STARTING POINT:  MARKET INCOME CALCULATED IN THE GROSSING UP
  
@@ -135,7 +144,10 @@ replace yf_pc=0 if yf_pc==.
 replace yf_pc=0 if yf_pc<0
 label var yf_pc "Final Income per capita"
 
-merge 1:1 hhid using "$data_sn\ehcvm_welfare_SEN2018.dta" , keepusing(zref) nogen
+*if ("$country" == "SEN") {
+*	merge 1:1 hhid using "$presim\ehcvm_welfare_SEN2018.dta" , keepusing(zref) nogen // THis is country specific for Senegal, zref should be taken from the same data, and from zr
+*}
+
 
 * Some results 
 
@@ -176,15 +188,19 @@ gen `var'_pc= `var'/hhsize
 
 // international pov lines
 
-*2011 PPP:
-*gen line_1=179514.1606
-*gen line_2=302339.6389
-*gen line_3=519646.2543
+
 
 *2017 PPP
+if ("$country" == "SEN") {
+	
+*2011 PPP:
+gen line_1=179514.1606
+gen line_2=302339.6389
+gen line_3=519646.2543
+
 
 preserve
-	use "$data_sn/s02_me_SEN2018.dta", clear
+	use "$presim/s_s02.dta", clear
 	keep hhid s00q23a s00q24a s00q25a s00q23b s00q24b s00q25b
 	duplicates drop
 	tempfile dates
@@ -223,14 +239,62 @@ replace ipc_month_yr_svy_17=1.009150417 if month==5
 replace ipc_month_yr_svy_17=1.013347483 if month==6
 replace ipc_month_yr_svy_17=1.01598285 if month==7
 
+foreach var in /*line_1 line_2 line_3*/ yd_pc yc_pc  {
+	gen test=1 if `var'<=zref
+	recode test .= 0
+	noi tab test [iw=hhweight*hhsize]
+	drop test
+}
 
-gen line_1=2.15*365*238.57769775*ipc_month_yr_svy_17
-gen line_2=3.65*365*238.57769775*ipc_month_yr_svy_17
-gen line_3=6.85*365*238.57769775*ipc_month_yr_svy_17
+}
+
+if ("$country" == "MRT") {
+
+* MRT: i2017 - 1.05, i2018 - 0.65, i2019 - 0.98. ccpi_a
+* MRT: i2017 - 3.0799999,	i2018 - 4.2035796. fcpi_a
+* MRT: i2017 - 2.269, i2018 - 3.07. hcpi_a
+* MRT Inflation according to WorldBank Data Dashboard. 2017 - 2.3, 2018 - 3.1
+* Country specific...
+
+local ppp17 = 12.4452560424805
+local inf17 = 2.3
+local inf18 = 3.1
+local inf19 = 2.3
+cap drop line_1 line_2 line_3
+gen line_1=2.15*365*`ppp17'*`inf17'*`inf18'*`inf19'
+gen line_2=3.65*365*`ppp17'*`inf17'*`inf18'*`inf19'
+gen line_3=6.85*365*`ppp17'*`inf17'*`inf18'*`inf19'
+
+foreach var in /*line_1 line_2 line_3*/ yd_pc yc_pc  {
+	gen test=1 if `var'<=zref
+	recode test .= 0
+	noi tab test [iw=hhweight*hhsize]
+	drop test
+}
+
+}
+
+if ("$country" == "GMB") {
+
+local ppp16 = 14.4826145172119  // PPP conversion factor, GDP (LCU per international $) 2016
+local inf17 = 2.3
+local inf18 = 3.1
+local inf19 = 2.3
+cap drop line_1 line_2 line_3
+gen line_1=2.15*365*`ppp16'
+gen line_2=3.65*365*`ppp16'
+gen line_3=6.85*365*`ppp16'
 
 
+foreach var in /*line_1 line_2 line_3*/ yd_pc yc_pc  {
+	gen test=1 if `var'<=zref
+	recode test .= 0
+	noi tab test [iw=hhweight*hhsize]
+	drop test
+}
 
 
+}
 save "$data_out/output.dta", replace
 
 
@@ -238,14 +302,19 @@ if "$scenario_name_save" == "Ref_2018" & $save_scenario ==1 {
 	save "$data_out/output_ref.dta", replace
 }
 
-** New poor and old poor using _ref and selected scenario
+** New poor and old poor using _ref and selected scenario 
 
 use "$data_out/output.dta" , clear
 
 
 rename poor poor_simu
 
-merge 1:1 hhid using "$data_out\output_ref"  , keepusing(poor) nogen
+
+if ("$country" == "GMB") {
+	destring hhid, replace
+}
+
+merge 1:1 hhid using "$data_out/output_ref"  , keepusing(poor) nogen
 
 rename poor poor_ref 
 
@@ -254,7 +323,7 @@ gen new_poor_pc=  poor_simu==1 & poor_ref==0
 gen old_poor_pc=  poor_simu==0 & poor_ref==1
 sort hhid
 
-
+cap drop depan // Just changed...
 gen depan=achats_avec_VAT
 gen depan_pc=depan/hhsize
 
@@ -286,8 +355,8 @@ egen dirtransf_total_pc = rowtotal(`DirectTransfers_pc')
 egen sscontribs_total = rowtotal(`Contributions')
 egen sscontribs_total_pc = rowtotal(`Contributions_pc')
 
-gen subsidy_total = subsidy_elec + subsidy_fuel + subsidy_eau + subsidy_agric
-gen subsidy_total_pc = subsidy_elec_pc + subsidy_fuel_pc + subsidy_eau_pc + subsidy_agric_pc
+gen subsidy_total = subsidy_elec + subsidy_fuel + subsidy_eau 
+gen subsidy_total_pc = subsidy_elec_pc + subsidy_fuel_pc + subsidy_eau_pc 
 
 gen indtax_total = excise_taxes + Tax_TVA
 gen indtax_total_pc = excise_taxes_pc + Tax_TVA_pc
@@ -311,7 +380,7 @@ label var csp_fnr	"Cotisation Retraite FNR (DELETED)"
 label var csh_css	"Risque Maladie et Allocation Familiale"
 label var csh_ipm	"Cotisation Santé à IPM"
 label var dirtransf_total	"Transferts directs"
-label var am_BNSF	"BNSF"
+*label var am_BNSF	"BNSF"
 label var am_Cantine	"Cantines Scolaires"
 label var am_bourse	"Bourse d'Éducation Universitaire"
 label var am_subCMU	"Assurance CMU"
@@ -325,7 +394,7 @@ label var subsidy_fuel_indirect	"Effet Indirect Carb."
 label var subsidy_eau	"Subv. Eau"
 label var subsidy_eau_direct	"Effet Direct Eau"
 label var subsidy_eau_indirect	"Effet Indirect Eau"
-label var subsidy_agric	"Subv. Agricole"
+cap label var subsidy_agric	"Subv. Agricole"
 label var indtax_total	"Taxes Indirectes"
 label var excise_taxes	"Droits d'Accise"
 label var Tax_TVA "TVA"

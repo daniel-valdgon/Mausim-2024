@@ -15,46 +15,24 @@
 -------------------------------------------------------------------*
 ===================================================================*/
 
-* use "$data_sn/Senegal_consumption_all_by_product.dta", clear
-* use "$data_sn/IO_percentage2_clean.dta", clear
-* use "$data_sn\informality_final_senegal.dta", clear
-
 /* ---------------------------------------------------------------
 1.1  Creating the database for vatmat, with %exempted by Sector
  -----------------------------------------------------------------*/
 
 *We will use household consumption per product to estimate weighted shares of VAT rates, exemptions and informality at the sector level
 
-*THIS SHOULD BE EXACTLY THE SAME AS IN 5.CONSUMPTION_NETDOWN (PRESIM) (1.A)
-
 *1.1.1. Household data --> Product data
-
-*use "$data_sn/Senegal_consumption_all_by_product.dta", clear
-*merge n:1 grappe menage using "$data_sn\ehcvm_conso_SEN2018_menage.dta" , nogen keepusing(hhid hhweight)
 
 *We will use household purchases per product to estimate weighted shares of VAT rates, exemptions and informality at the sector level
 
-
-global data_sn "C:\Users\wb621266\OneDrive - WBG\Mausim_2024\01_data\01_raw\EPCV_2019\Datain"
-global presim "C:\Users\wb621266\OneDrive - WBG\Mausim_2024\01_data\02_pre_sim"
-global tool "C:\Users\wb621266\OneDrive - WBG\Mausim_2024\03. Tool\SN_Sim_tool_Gabriel_raw.xlsx"
-
-global devmode = 0
-
-
 use "$presim/05_purchases_hhid_codpr.dta", clear
 
-ren (Prod dep) (codpr depan)
+merge m:1 hhid using "$presim/01_menages.dta" , nogen keepusing(hhweight)
 
-*merge n:1 hhid using "$data_sn\ehcvm_conso_SEN2018_menage.dta" , nogen keepusing(hhweight) ///////
+collapse (sum) depan [iw=hhweight], by(codpr) 
 
-collapse (sum) depan /*[iw=hhweight]*/, by(codpr)
+merge 1:m codpr using "$presim/IO_percentage.dta", nogen keepusing(sector pourcentage) keep(1 3)
 
-merge 1:1 codpr using "$presim/IO.dta", nogen keepusing(sector)
-
-merge 1:1 codpr using "$presim/VAT.dta", nogen keepusing(coicop TVA formelle exempted) /////// 
-
-/*
 tempfile prod_weights
 save `prod_weights'
 
@@ -66,16 +44,18 @@ gen exempted=.
 levelsof codpr, local(produits)
 foreach prod of local produits {
 	replace TVA      = ${vatrate_`prod'} if codpr==`prod'
-	*replace formelle = ${vatform_`prod'} if codpr==`prod'
+	replace formelle = ${vatform_`prod'} if codpr==`prod'
 	replace exempted = ${vatexem_`prod'} if codpr==`prod'
 }
-*/
+
 replace depan      = 0 if depan==.
-*replace depan      = depan*pourcentage
+replace depan      = depan*pourcentage
 
 *1.1.2. Product data --> Sector data
 
-collapse (mean) TVA (sum) depan [iw=depan], by(sector exempted)
+gen all=1
+collapse (mean) TVA (sum) all [iw=depan], by(sector exempted)
+ren all depan // this was to make TVA a weighted average but not depan
 
 tempfile VAT_secteurs_exempted
 save `VAT_secteurs_exempted', replace
@@ -87,7 +67,7 @@ save `secteurs', replace
 
 *1.1.3. Sector data --> IO matrix y vatmat
 
-import excel "$tool", sheet("IO_sect17") firstrow clear
+use "$presim/IO_Matrix.dta", clear 
 drop if sector==.
 
 merge 1:1 sector using `secteurs', nogen
@@ -98,44 +78,38 @@ replace VAT_exempt=1 if VAT_exempt_share>0 & VAT_exempt_share<.
 assert  VAT_exempt_share>0   if VAT_exempt==1 // all exempted sector should have a exemption share 
 assert  VAT_exempt_share==0  if VAT_exempt==0 // all non exempted sector should have either zero or missing  
 
-*What to do with sectors with no VAT information? Assume they are half exempted
+*What to do with sectors with no VAT information? Assume they are no exempted & avg. rate
 count if VAT_exempt_share==.
 if `r(N)'>0{
-	dis as error "`r(N)' sectors have no VAT information, we just assumed they are 50% exempted which implies an average VAT rate of 9%"
+	local numsect `r(N)'
+	sum TVA
+	local avgrate = round(`r(mean)'*100,0.01)
+	dis as error "`numsect' sectors have no VAT information, we just assumed they are no exempted and assume the average VAT rate of `avgrate'%"
 	*dis as error "should we include this assumed TVA rate for missing sectors as a parameter in the tool?"
 }
 
-replace VAT_exempt_share=0.5 if VAT_exempt_share==.
-replace VAT_exempt      =1   if VAT_exempt      ==.
-replace TVA=0.09 if TVA==.
+replace VAT_exempt_share=0 if VAT_exempt_share==.
+replace VAT_exempt      =0 if VAT_exempt      ==.
+sum TVA
+replace TVA=`r(mean)' if TVA==.
 
 tempfile io_original_SY 
 save `io_original_SY', replace 
 
-*drop if sector==23
-*drop sect_23
-
- 
-vatmat sect_1-sect_23, exempt(VAT_exempt) pexempt(VAT_exempt_share) sector(sector)
-
-
+des sect_*, varlist 
+local list "`r(varlist)'"
+vatmat `list' , exempt(VAT_exempt) pexempt(VAT_exempt_share) sector(sector) 
 
 /* ------------------------------------------
 1.2  Estimating indirect effects of VAT
  --------------------------------------------*/
 noi dis as result " 1. Effet indirect de la politique de TVA"
 
-
 *Fixed sectors 
-local thefixed 8 // electricite, gaz et eau - activites d'administration pub - education et formation - activites de sante et action s - raffinage petrole, cokefaction
-
-gen fixed=0
-foreach var of local thefixed {
-	replace fixed=1  if  sector==`var'
-}
-
+merge m:1 sector using "$presim/IO_Matrix.dta", assert(master matched) keepusing(fixed) nogen
+ 
 *VAT rates (sector level VAT)
-merge m:1 sector using `io_original_SY', /*assert(master matched)*/ keepusing(TVA) nogen
+merge m:1 sector using `io_original_SY', assert(master matched) keepusing(TVA) nogen
 
 *No price control sectors 
 gen cp=1-fixed
@@ -144,8 +118,12 @@ gen cp=1-fixed
 gen vatable=1-fixed-exempted
 replace vatable = 0 if vatable==-1 //Sectors that are fixed and exempted are not VATable
 
+
 *Indirect effects 
-vatpush sector_1-sector_45 , exempt(exempted) costpush(cp) shock(TVA) vatable(vatable) gen(TVA_indirect)
+des sector_*, varlist 
+local list "`r(varlist)'"
+
+vatpush `list' , exempt(exempted) costpush(cp) shock(TVA) vatable(vatable) gen(TVA_indirect)
 
 
 keep sector TVA TVA_indirect fixed exempted
@@ -154,8 +132,7 @@ rename TVA TVA_mean_sector
 tempfile ind_effect_VAT
 save `ind_effect_VAT'
 
-gab
-
+ 
 /*==================================================================
 -------------------------------------------------------------------*
 			2. Computing direct price effects of VAT
@@ -175,14 +152,14 @@ foreach prod of global products {
 	qui replace TVA      = ${vatrate_`prod'} if codpr==`prod' in `i'
 	qui replace formelle = ${vatform_`prod'} if codpr==`prod' in `i'
 	qui replace exempted = ${vatexem_`prod'} if codpr==`prod' in `i'
-	local i=i+1
+	local i=`i'+1
 }
 tempfile VATrates
 save `VATrates'
 
 
 if $devmode== 1 {
-    use "$tempsim/Excises_verylong.dta", clear
+	use "$tempsim/Excises_verylong.dta", clear
 }
 else{
 	use `Excises_verylong', clear
@@ -190,87 +167,113 @@ else{
 
 merge m:1 codpr using `VATrates', nogen keep(1 3)
 
+* Informality simulation assumption
+noi dis as result "Simulation with the assumption that informality decrease in ${informal_reduc_rate} %"
+
+egen aux = max(informal_purchase * achats_avec_excises * $informal_reduc_rate), by(hhid codpr)
+gen aux_f = (1 - informal_purchase) * (achats_avec_excises + aux) 
+gen aux_i = informal_purchase * (achats_avec_excises - aux)
+
+bysort hhid codpr: egen x_bef=total(achats_avec_excises)
+ereplace achats_avec_excises = rowtotal(aux_f aux_i)
+*egen achats_avec_excises2 = rowtotal(aux_f aux_i)
+bysort hhid codpr: egen x_aft=total(achats_avec_excises)
+
+* Check
+*assert inrange(x_bef,x_aft*0.9999, x_aft*1.0001)
+if ("$country" != "SEN") assert inrange(x_bef,x_aft*0.9999, x_aft*1.0001) 
+
+*Check on Senegal informality: The data is unbalanced on the informal_purchase. 150 purchases and household don't have variable for formality. Therefore on the recalibration of the expenses the pre informality and post informarlity purchases are different. It is only 0.02% of the total expenses.  
+
+drop aux aux_f aux_i x_bef x_aft 
+
 gen TVA_direct = achats_avec_excises * TVA * (1-informal_purchase)
 
-*Water and electricity have special VAT policies
 
+/*Water and electricity have special VAT policies 
 
-/*Electricity:
+* To run for Senegal with water/electricity TVA. I need to check the previous database Excises_verylong of allSimulation in Senegeal and bring only data needed for this assumption and merge it
 
-foreach payment in  0 1 {	
-	if "`payment'"=="1" local tpay "W"			// Prepaid (Woyofal)
-	else if "`payment'"=="0" local tpay "P"		// Postpaid
-	foreach pui in DPP DMP DGP{
-		if ("`pui'"=="DPP") local client=1
-		if ("`pui'"=="DMP") local client=2
-		if ("`pui'"=="DGP") local client=3
-		if strlen(`"${TariffT1_`tpay'`pui'}"')>0{ //This should skip those cases where the combination puissance*payment does not exist (basically WDGP)
-			foreach tranch of varlist tranche*_tool {
-				local i = real(substr("`tranch'",8,1))
-				cap gen TariffT`i' = 0
-				if strlen(`"${TariffT`i'_`tpay'`pui'}"')>0{
-					replace TariffT`i' = ${TariffT`i'_`tpay'`pui'} if type_client==`client' & prepaid_woyofal==`payment' & $incBlockTar == 1 //Versión de tarifas marginales
-				}
-				if $incBlockTar == 0 {																									 //Tarifas planas por hogar
-					levelsof tranche_elec_max if type_client==`client' & prepaid_woyofal==`payment', local(tmaxes)
-					foreach tmax of local tmaxes{
-						replace TariffT`i' = ${TariffT`tmax'_`tpay'`pui'} if type_client==`client' & prepaid_woyofal==`payment' & tranche_elec_max==`tmax'
+*
+if ("$country" == "SEN" & "$SEN_all_policies" == "YES") {
+
+	*Electricity:
+
+	foreach payment in  0 1 {	
+		if "`payment'"=="1" local tpay "W"			// Prepaid (Woyofal)
+		else if "`payment'"=="0" local tpay "P"		// Postpaid
+		foreach pui in DPP DMP DGP{
+			if ("`pui'"=="DPP") local client=1
+			if ("`pui'"=="DMP") local client=2
+			if ("`pui'"=="DGP") local client=3
+			if strlen(`"${TariffT1_`tpay'`pui'}"')>0{ //This should skip those cases where the combination puissance*payment does not exist (basically WDGP)
+				foreach tranch of varlist tranche*_tool {
+					local i = real(substr("`tranch'",8,1))
+					cap gen TariffT`i' = 0
+					if strlen(`"${TariffT`i'_`tpay'`pui'}"')>0{
+						replace TariffT`i' = ${TariffT`i'_`tpay'`pui'} if type_client==`client' & prepaid_woyofal==`payment' & $incBlockTar == 1 //Versión de tarifas marginales
 					}
+					if $incBlockTar == 0 {																									 //Tarifas planas por hogar
+						levelsof tranche_elec_max if type_client==`client' & prepaid_woyofal==`payment', local(tmaxes)
+						foreach tmax of local tmaxes{
+							replace TariffT`i' = ${TariffT`tmax'_`tpay'`pui'} if type_client==`client' & prepaid_woyofal==`payment' & tranche_elec_max==`tmax'
+						}
+					}
+					cap gen vatratele_net_`i' = 0
+					replace vatratele_net_`i' = $vatrate_334 if type_client==`client' & prepaid_woyofal==`payment' & $VATregime_elec < `i' & $full_VAT_nonex_elec == 0  //Exempted below
+					replace vatratele_net_`i' = $vatrate_334 if type_client==`client' & prepaid_woyofal==`payment' & $VATregime_elec < tranche_elec_max & $full_VAT_nonex_elec == 1 //Pay if over
 				}
-				cap gen vatratele_net_`i' = 0
-				replace vatratele_net_`i' = $vatrate_334 if type_client==`client' & prepaid_woyofal==`payment' & $VATregime_elec < `i' & $full_VAT_nonex_elec == 0  //Exempted below
-				replace vatratele_net_`i' = $vatrate_334 if type_client==`client' & prepaid_woyofal==`payment' & $VATregime_elec < tranche_elec_max & $full_VAT_nonex_elec == 1 //Pay if over
 			}
 		}
 	}
+
+	gen TVA_elec = 0
+	foreach tranch of varlist tranche*_tool {
+		local i = real(substr("`tranch'",8,1))
+		replace TVA_elec = TVA_elec + TariffT`i'*tranche`i'_tool*vatratele_net_`i'
+	}
+	replace TVA_elec = TVA_elec*(1-informal_purchase)*6
+
+
+
+	*Water
+
+	foreach tranch of varlist tranche*_tool_eau {
+		local i = real(substr("`tranch'",8,1))
+		cap gen TariffT`i'_eau = 0
+		replace TariffT`i'_eau = ${TariffT`i'_eau}
+		cap gen vatrateau_net_`i' = 0
+		replace vatrateau_net_`i' = $vatrate_332 if $VATregime_eau < `i'			   & $full_VAT_nonex_eau == 0  //Exempted below
+		replace vatrateau_net_`i' = $vatrate_332 if $VATregime_eau < tranche_water_max & $full_VAT_nonex_eau == 1  //Pay if over
+	}
+
+	gen TVA_eau = 0
+		
+	foreach tranch of varlist tranche*_tool_eau {
+		local i = real(substr("`tranch'",8,1))
+		replace TVA_eau = TVA_eau + TariffT`i'_eau*tranche`i'_tool_eau*vatrateau_net_`i'
+	}
+	replace TVA_eau = TVA_eau*(1-informal_purchase)*6
+
+
+	*Apply special VAT amounts
+
+	replace TVA_direct = TVA_elec if codpr==334
+	replace TVA_direct = TVA_eau  if codpr==332
+
+
 }
-
-gen TVA_elec = 0
-foreach tranch of varlist tranche*_tool {
-	local i = real(substr("`tranch'",8,1))
-	replace TVA_elec = TVA_elec + TariffT`i'*tranche`i'_tool*vatratele_net_`i'
-}
-replace TVA_elec = TVA_elec*(1-informal_purchase)*6
-
-
-
-*Water
-
-foreach tranch of varlist tranche*_tool_eau {
-	local i = real(substr("`tranch'",8,1))
-	cap gen TariffT`i'_eau = 0
-	replace TariffT`i'_eau = ${TariffT`i'_eau}
-	cap gen vatrateau_net_`i' = 0
-	replace vatrateau_net_`i' = $vatrate_332 if $VATregime_eau < `i'			   & $full_VAT_nonex_eau == 0  //Exempted below
-	replace vatrateau_net_`i' = $vatrate_332 if $VATregime_eau < tranche_water_max & $full_VAT_nonex_eau == 1  //Pay if over
-}
-
-gen TVA_eau = 0
-	
-foreach tranch of varlist tranche*_tool_eau {
-	local i = real(substr("`tranch'",8,1))
-	replace TVA_eau = TVA_eau + TariffT`i'_eau*tranche`i'_tool_eau*vatrateau_net_`i'
-}
-replace TVA_eau = TVA_eau*(1-informal_purchase)*6
-
-
-*Apply special VAT amounts
-
-replace TVA_direct = TVA_elec if codpr==334
-replace TVA_direct = TVA_eau  if codpr==332
-
 */
+
 
 *-------------------------------------------------------------------*
 *		Merging direct and indirect VAT, and confirmation
 *-------------------------------------------------------------------*
 
-merge m:1 Secteur exempted using `ind_effect_VAT', nogen  assert(match using) keep(match)
+merge m:1 sector exempted using `ind_effect_VAT', nogen  /*assert(match using)*/ keep(match)
 
 rename TVA_indirect TVA_indirect_shock
 gen TVA_indirect = TVA_indirect_shock * achats_avec_excises
-
-
 
 *Confirmation that the calculation is correct for the survey year policies:
 gen achats_avec_VAT = (achats_avec_excises + TVA_direct) * (1 + TVA_indirect_shock)
@@ -313,22 +316,6 @@ if $devmode== 1 {
 
 tempfile VAT_taxes
 save `VAT_taxes'
-
-gab
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
