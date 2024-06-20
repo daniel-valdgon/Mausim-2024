@@ -780,9 +780,9 @@ use "$data_sn/PMT_EPCV_harmonized", clear
 	
 *** Logit on observable programs
 
-	merge 1:1 hid using "$data_sn/program_EPCV.dta", keep(3) keepusing(hh_prog_1 hh_prog_2 hh_prog_3)
+	merge 1:1 hid using "$data_sn/program_EPCV.dta", keep(3) keepusing(hh_prog_1 hh_prog_2 hh_prog_3) nogen
 		
-forvalues i = 1/2 {
+forvalues i = 1/3 {
 	
 	vselect hh_prog_`i' $vlist if sample_nat==1 [aw=hhweight], forward r2adj
 	return list

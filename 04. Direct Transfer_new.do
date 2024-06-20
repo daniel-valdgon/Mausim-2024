@@ -16,8 +16,11 @@ keep hhid PMT* departement pmt_seed hhweight hhsize milieu
 noi dis as result " 1. Programme National de Bourses de Sécurité Familiale "
 /**********************************************************************************/
 
+replace milieu  = 0 if milieu == 2
+
 forvalues i = 1/2 {
 	
+	*local i = 1
 	gen benefsdep_PNBSF`i' =.
 	gen montantdep_PNBSF`i' =.
 	merge m:1 departement using "$tempsim/departments`i'.dta", nogen
@@ -114,7 +117,7 @@ noi dis as result " 3. School Feeding Programme "
 
 	*gen preandpri=(ben_pre_school== 1 | ben_primary==1)
 
-	gen preandpri=(ben_primary==1 & milieu == 2)
+	gen preandpri=(ben_primary==1 & milieu == 0)
 	
 	gen benefsreg_CS=.
 	gen montantreg_CS=.
@@ -125,7 +128,7 @@ noi dis as result " 3. School Feeding Programme "
 	
 	
 	gsort pmt_seed -preandpri
-	bysort region (pmt_seed -preandpri): gen potential_ben= sum(hhweight) if preandpri==1
+	bysort region (PMT_3 pmt_seed -preandpri): gen potential_ben= sum(hhweight) if preandpri==1
 	gen _e1=abs(potential_ben-benefsreg_CS)
 	bysort region: egen _e=min(_e1)
 	gen _icum=potential_ben if _e==_e1
@@ -166,8 +169,7 @@ gen rev_pubstu = 0 //prepri_sec * $transt_Pub_student
 ****Remember that PNBSF and UBI are calculated at the household level,
 ****but the school lunches is at the individual level
 
-collapse (mean) am_BNSF* rev_universel (sum) am_Cantine rev_pubstu, by(hhid hhweight)
-
+collapse (mean) am_BNSF* rev_universel (sum) am_Cantine rev_pubstu, by(hhid hhweight milieu)
 
 if $devmode== 1 {
     save "$tempsim/Direct_transfers.dta", replace
@@ -176,6 +178,8 @@ if $devmode== 1 {
 tempfile Direct_transfers
 save `Direct_transfers'
 
+sum *
+tabstat am_BNSF1 am_BNSF2 rev_universel am_Cantine rev_pubstu [aw = hhweight], s(mean sum) by(milieu)
 
 	
 	
