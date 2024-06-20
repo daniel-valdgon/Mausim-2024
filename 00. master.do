@@ -37,7 +37,7 @@ if "`c(username)'"=="gabriellombomoreno" {
 	global thedo     	"${path}/02_scripts"
 
 	global country 		"MRT"
-	global scenario_name_save2 "V0_${country}_Test"
+	global scenario_name_save2 "V0_${country}_Test2"
 	
 	global hh_coverage	1 // 1: 44% coverage, 2: 76% Coverage
 	
@@ -67,6 +67,8 @@ if "`c(username)'"=="andre" {
 if "`c(username)'"=="wb419055" {
 	
 	global country "MRT" 	// leave the country global within your username
+	global hh_coverage	1 // 1: 44% coverage, 2: 76% Coverage
+
 	
 	// folder with data
 	global pathdata     "C:\Users\wb419055\OneDrive - WBG\West Africa\Mauritania\03_MauSim\Mausim_2024\00_Workshop\Feb_2024\VAT_tool" 
@@ -114,7 +116,7 @@ foreach f of local files{
 *===============================================================================
 // Run pre_simulation files (Only run once)
 *===============================================================================
-/*
+
 if ("$country" == "MRT") {
 		
 	*qui: include "$thedo_pre/VarStandardization.do" 
@@ -131,7 +133,7 @@ if ("$country" == "MRT") {
 	
 	noi di "You are running the pre simulation do files"
 }
-*/
+
 	*******************************************************************
 	//-Creating the other necessary variables to run do-files 10 & 11. // 
 	
