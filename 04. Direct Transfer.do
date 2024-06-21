@@ -10,13 +10,11 @@
 set seed 1234
 use  "$presim/07_dir_trans_PMT.dta", clear 
 
-keep hhid PMT* departement pmt_seed hhweight hhsize milieu
+keep hhid PMT* elmaouna departement pmt_seed hhweight hhsize milieu
 
 /**********************************************************************************/
 noi dis as result " 1. Programme National de Bourses de Sécurité Familiale "
 /**********************************************************************************/
-
-replace milieu  = 0 if milieu == 2
 
 forvalues i = 1/2 {
 	
@@ -87,15 +85,86 @@ forvalues i = 1/2 {
 	}
 	
 }	
+
+/**********************************************************************************/
+noi dis as result " 1. Elmaouna "
+/**********************************************************************************/
 	
+	gen elegible = (elmaouna == 1 & beneficiaire_PNBSF2 == 0 & milieu == 2)
+	
+	gen benefsdep =.
+	gen montantdep =.
+	merge m:1 departement using "$tempsim/departments3.dta", nogen
+	replace benefsdep = Beneficiaires
+	replace montantdep = Montant
+	drop Beneficiaires Montant
+	
+	if ($pnbsf_PMT ==0) {  // PMT targeting inside each department
+		
+		gsort pmt_seed -elegible
+		bysort departement (pmt_seed -elegible): gen potential_ben= sum(hhweight) if elegible==1
+		gen _e1=abs(potential_ben-benefsdep)
+		bysort departement: egen _e=min(_e1)
+		gen _icum=potential_ben if _e==_e1
+			gen numicum = (_icum!=.)
+			bysort departement numicum (_icum): gen rep = _n
+			replace _icum = . if rep>1
+		bysort departement: egen Beneficiaires_i=total(_icum)
+		bysort departement: egen _icum2_sd=sd(_icum)
+		assert _icum2_sd==.
+			sum benefsdep if _icum!=.
+			local realbenefs = r(sum)
+		drop _icum2_sd _icum _e _e1 rep
+		gen am = montantdep*(potential_ben<=Beneficiaires_i)
+		gen beneficiaire = (potential_ben<=Beneficiaires_i)
+		drop Beneficiaires_i potential_ben numicum
+			sum hhweight if elegible==1
+			local potential = r(sum)
+			sum beneficiaire [iw=hhweight]
+			nois dis as text "Excel requested `realbenefs' beneficiary hh, and we assigned `r(sum)' of the potential `potential'"
+			if `potential'<=`r(sum)'{
+				nois dis as error "Check if assigning every potential beneficiary makes sense."
+			}
+	}
+	
+	if ($pnbsf_PMT ==1) {  // PMT targeting inside each department
+		
+		gsort pmt_seed -elegible
+		bysort departement (PMT_2 pmt_seed -elegible): gen potential_ben= sum(hhweight) if elegible==1
+		gen _e1=abs(potential_ben-benefsdep)
+		bysort departement: egen _e=min(_e1)
+		gen _icum=potential_ben if _e==_e1
+			gen numicum = (_icum!=.)
+			bysort departement numicum (_icum): gen rep = _n
+			replace _icum = . if rep>1
+		bysort departement: egen Beneficiaires_i=total(_icum)
+		bysort departement: egen _icum2_sd=sd(_icum)
+		assert _icum2_sd==.
+			sum benefsdep if _icum!=.
+			local realbenefs = r(sum)
+		drop _icum2_sd _icum _e _e1 rep
+		gen am = montantdep*(potential_ben<=Beneficiaires_i)
+		gen beneficiaire = (potential_ben<=Beneficiaires_i)
+		drop Beneficiaires_i potential_ben numicum
+			sum hhweight if elegible==1
+			local potential = r(sum)
+			sum beneficiaire [iw=hhweight]
+			nois dis as text "Excel requested `realbenefs' beneficiary hh, and we assigned `r(sum)' of the potential `potential'"
+			if `potential'<=`r(sum)'{
+				nois dis as error "Check if assigning every potential beneficiary makes sense."
+			}
+	}
+
+	ren am am_elmaouna
+	ren beneficiaire beneficiaire_elmaouna	
 	
 /**********************************************************************************/
 noi dis as result " 2. Universal Basic Transfer to household member who are at least 18 "
 /**********************************************************************************/
 	
 	
-gen rev_universel = 0 // hhsize * $UBI_person  
-*nois dis as text "In Excel we request that each individual is given $" $UBI_person " as a UBI"
+gen rev_universel = hhsize * $UBI_person  
+nois dis as text "In Excel we request that each individual is given $" $UBI_person " as a UBI"
 	
 	
 
@@ -103,7 +172,7 @@ gen rev_universel = 0 // hhsize * $UBI_person
 noi dis as result " 3. School Feeding Programme "
 /**********************************************************************************/
 
-*qui {
+qui {
 	
 	merge 1:m hhid  using  "$presim/07_educ.dta", nogen // not matched ae
 
@@ -117,7 +186,7 @@ noi dis as result " 3. School Feeding Programme "
 
 	*gen preandpri=(ben_pre_school== 1 | ben_primary==1)
 
-	gen preandpri=(ben_primary==1 & milieu == 0)
+	gen preandpri=(ben_primary==1 & milieu == 2)
 	
 	gen benefsreg_CS=.
 	gen montantreg_CS=.
@@ -155,13 +224,12 @@ noi dis as result " 3. School Feeding Programme "
 
 	tempfile auxiliar_cantine_II
 	save `auxiliar_cantine_II' // *save "$dta/auxiliar_cantine.dta", replace
-*}
+}
+
 
 /**********************************************************************************/
 noi dis as result " 5. Transfer to students in public institution"
 /**********************************************************************************/
-
-*gen prepri_sec = 0
 
 gen rev_pubstu = 0 //prepri_sec * $transt_Pub_student
 
@@ -169,7 +237,7 @@ gen rev_pubstu = 0 //prepri_sec * $transt_Pub_student
 ****Remember that PNBSF and UBI are calculated at the household level,
 ****but the school lunches is at the individual level
 
-collapse (mean) am_BNSF* rev_universel (sum) am_Cantine rev_pubstu, by(hhid hhweight milieu)
+collapse (mean) am_BNSF* am_elmaouna rev_universel (sum) am_Cantine rev_pubstu, by(hhid)
 
 if $devmode== 1 {
     save "$tempsim/Direct_transfers.dta", replace
@@ -178,8 +246,8 @@ if $devmode== 1 {
 tempfile Direct_transfers
 save `Direct_transfers'
 
-sum *
-tabstat am_BNSF1 am_BNSF2 rev_universel am_Cantine rev_pubstu [aw = hhweight], s(mean sum) by(milieu)
+*sum *
+*tabstat am_BNSF1 am_BNSF2 rev_universel am_Cantine rev_pubstu [aw = hhweight], s(mean sum) by(milieu)
 
 	
 	

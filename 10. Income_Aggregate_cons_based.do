@@ -66,7 +66,7 @@ gen ymp_pc=yd_pre
 
 	local Directaxes 		"income_tax trimf"
 	local Contributions 	"csh_css csh_ipm csh_mutsan" //(AGV) Note that csh_mutsan is created in 4.DirTransfers and not in 3.SSC (as it should). csp_ipr csp_fnr excluded because, in PDI, pension contributions are not included.
-	local DirectTransfers   "am_bourse am_Cantine am_BNSF1 am_BNSF2 am_subCMU rev_pubstu rev_universel"
+	local DirectTransfers   "am_bourse am_Cantine am_BNSF1 am_BNSF2 am_elmaouna am_subCMU rev_pubstu rev_universel"
 	
 	local subsidies         "subsidy_elec_direct subsidy_elec_indirect subsidy_fuel_direct subsidy_fuel_indirect subsidy_eau_direct subsidy_eau_indirect "
 	local Indtaxes 			"excise_taxes TVA_direct TVA_indirect"

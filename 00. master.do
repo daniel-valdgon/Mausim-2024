@@ -32,15 +32,15 @@ if "`c(username)'"=="" {
 * Gabriel - Personal Computer
 if "`c(username)'"=="gabriellombomoreno" {
 	
-	global pathdata     "/Users/gabriellombomoreno/Documents/WorldBank/Mausim_2024"
-	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Mausim_2024"
+	global pathdata     "/Users/gabriellombomoreno/Documents/WorldBank/Projects/Mauritania/Mausim_2024"
+	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/Mauritania/Mausim_2024"
 	global thedo     	"${path}/02_scripts"
 
 	global country 		"MRT"
-	global scenario_name_save2 "V0_${country}_Test2"
+	global scenario_name_save2 "V1_${country}_DirTran_Rand"
 	
 	global hh_coverage	1 // 1: 44% coverage, 2: 76% Coverage
-	
+
 	global xls_sn 		"${path}/03_Tool/policy_inputs/${country}/SN_Sim_tool_VI_${country}_ref.xlsx"
 	global xls_out    	"${path}/03_Tool/SN_Sim_tool_VI_`c(username)'.xlsx"	
 }
@@ -116,7 +116,7 @@ foreach f of local files{
 *===============================================================================
 // Run pre_simulation files (Only run once)
 *===============================================================================
-
+/*
 if ("$country" == "MRT") {
 		
 	*qui: include "$thedo_pre/VarStandardization.do" 
@@ -125,7 +125,7 @@ if ("$country" == "MRT") {
 	
 	qui: include "$thedo_pre/05_spend_dta_purchases.do" 
 	
-	qui: include "$thedo_pre/07_direct_transfer_PMT.do" 
+	qui: include "$thedo_pre/07_direct_transfer.do" 
 	
 	qui: include "$thedo_pre/08_subsidies_elect.do" 
 	
@@ -133,7 +133,7 @@ if ("$country" == "MRT") {
 	
 	noi di "You are running the pre simulation do files"
 }
-
+*/
 	*******************************************************************
 	//-Creating the other necessary variables to run do-files 10 & 11. // 
 	
@@ -203,7 +203,7 @@ qui: include  "$thedo/01. Pullglobals.do"
 // 4. Direct transfers
 *-------------------------------------
 
-qui: include "$thedo/04. Direct Transfer_new.do"
+qui: include "$thedo/04. Direct Transfer.do"
 
 *-------------------------------------
 // 6. Subsidies

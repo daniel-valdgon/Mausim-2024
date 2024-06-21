@@ -146,7 +146,7 @@
 
 *	qui {
 
-forvalues i = 1/2 {
+forvalues i = 1/3 {
 
 		import excel "$xls_sn", sheet(PNBSF`i'_raw) first clear
 		drop if 	departement ==.		
