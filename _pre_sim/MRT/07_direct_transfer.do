@@ -428,7 +428,13 @@ save `employment', replace
 *Group of variables :  		Shocks & Food insubsistency 
 *==========================================================
 
+*set comma pd
+
 use "$data_sn/Datain/individus_2019.dta", clear
+
+*ren hid hhid
+*merge m:1 hhid using "$presim/01_menages.dta", nogen keep(3) keepusing(hhsize hhweight)
+
 
 global worry SA1
 global nofood SA4
@@ -440,7 +446,24 @@ global shocks "worry nofood time_drought reason_drought"
 gen worry = $worry == 1
 gen nofood = $nofood == 1
 gen time_drought = ${time_drought}_3 == 1 | ${time_drought}_4 == 1 | ${time_drought}_5 == 1 | ${time_drought}_6 == 1
-gen reason_drought = ${reason_drought}_A == 1 | ${reason_drought}_B == 1 | ${reason_drought}_C == 1
+gen reason_drought = ${reason_drought}_A == 1 | ${reason_drought}_B == 1 | ${reason_drought}_C == 1 | ${reason_drought}_A == 2 | ${reason_drought}_B == 2 | ${reason_drought}_C == 2 | ${reason_drought}_A == 8 | ${reason_drought}_B == 8 | ${reason_drought}_C == 8
+
+
+/*
+gen prog_2 = (PS4A == 2 | PS4B == 2 | PS4C == 2)
+
+tab prog_2 nofood [iw = hhweight], m row
+
+tab prog_2 nofood [iw = hhweight] if milieu == 2, m row
+
+tab nofood milieu [iw = hhweight], m row
+
+
+tabm SA5* [iw = hhweight], m row nol nofreq
+
+tab1 $shocks [iw = hhweight], m
+
+*/
 
 foreach x of global shocks {
 	egen hh_`x' = max(`x'), by(hid)
@@ -878,8 +901,17 @@ use "$data_sn/PMT_EPCV_harmonized", clear
 	merge 1:1 hid using "$data_sn/program_EPCV.dta", keep(3) keepusing(hh_prog_1 hh_prog_2 hh_prog_3) nogen
 	
 * Program 1 - Tekavoul CCT	
+	
+	*reg hh_prog_2 $vlist 
 		
+				
 forvalues i = 1/3 {
+	
+	gen Ahh_prog_`i' = 0 if  hh_prog_`i' == 1
+	replace Ahh_prog_`i' = 1 if  hh_prog_`i' == 0
+	
+	drop hh_prog_`i'
+	ren Ahh_prog_`i' hh_prog_`i'
 	
 	vselect hh_prog_`i' $vlist if sample_nat==1 [aw=hhweight], forward r2adj
 	return list
@@ -905,12 +937,14 @@ forvalues i = 1/3 {
 	egen max = max(PMT_`i'), by(wilaya)
 	
 	replace PMT_`i' = min if hh_prog_`i' == 1
-	replace PMT_`i' = max if milieu == 1
+	*replace PMT_`i' = max if milieu == 1
 	replace PMT_`i' = max if large_livestock > 0
 	*replace PMT_`i' = max if medium_livestock > 0
 
 	drop min max
 }	
+
+
 			
 ren hid hhid 
 
@@ -1023,11 +1057,11 @@ gen prepri_sec=(ben_pre_school== 1 | ben_primary==1 | ben_secondary == 1)
 ren wilaya region
 ren hid hhid 											 
 
-*merge m:1 hhid using "$presim/01_menages.dta" , nogen keepusing(hhweight hhsize) keep(3)
-*tab region [iw = hhweight] if ben_primary==1 & milieu == 2 
-*tab region [iw = hhweight] if ben_primary==1 & milieu == 2 & inlist(region, 1, 3, 10) , m
-*tab region [iw = hhweight] if ben_primary==1 & milieu == 2 & inlist(region, 1, 3, 10, 4, 5) , m
-*tab region PS4A [iw = hhweight] if ben_primary==1 & milieu == 2 & inlist(region, 1, 3, 10) , m
+keep hhid region ben* PS* 
+
+save "$data_sn/program_EPCV_indiv.dta", replace
+
+
 
 
 keep hhid region ben*

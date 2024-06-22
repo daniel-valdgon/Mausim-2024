@@ -130,7 +130,7 @@ noi dis as result " 1. Elmaouna "
 	if ($pnbsf_PMT ==1) {  // PMT targeting inside each department
 		
 		gsort pmt_seed -elegible
-		bysort departement (PMT_2 pmt_seed -elegible): gen potential_ben= sum(hhweight) if elegible==1
+		bysort departement (PMT_1 pmt_seed -elegible): gen potential_ben= sum(hhweight) if elegible==1
 		gen _e1=abs(potential_ben-benefsdep)
 		bysort departement: egen _e=min(_e1)
 		gen _icum=potential_ben if _e==_e1

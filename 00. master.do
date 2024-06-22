@@ -36,7 +36,7 @@ if "`c(username)'"=="gabriellombomoreno" {
 	global thedo     	"${path}/02_scripts"
 
 	global country 		"MRT"
-	global scenario_name_save2 "V2_${country}_DirTran_Tekavoul"
+	global scenario_name_save2 "VTest_${country}_Test"
 	
 	global hh_coverage	1 // 1: 44% coverage, 2: 76% Coverage
 
