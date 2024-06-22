@@ -1,4 +1,3 @@
-
 /*==============================================================================*\
  West Africa Mini Simulation Tool for indirect taxes (VAT)
  Authors: Madi Mangan, Gabriel Lombo, Daniel Valderrama
@@ -69,17 +68,16 @@ if "`c(username)'"=="wb419055" {
 	global country "MRT" 	// leave the country global within your username
 	global hh_coverage	1 // 1: 44% coverage, 2: 76% Coverage
 
+	//Project folder 
+	global path     	"C:\Users\wb419055\OneDrive - WBG\West Africa\Mauritania\03_MauSim\Mausim_2024"
 	
-	// folder with data
-	global pathdata     "C:\Users\wb419055\OneDrive - WBG\West Africa\Mauritania\03_MauSim\Mausim_2024\00_Workshop\Feb_2024\VAT_tool" 
-	
-	global path     	"C:\Users\wb419055\OneDrive - WBG\West Africa\Mauritania\03_MauSim\Mausim_2024\00_Workshop\Feb_2024\VAT_tool"
+	// Data folder when using data from an external library (not often in West Africa tool}
+	global pathdata     "C:\Users\wb419055\OneDrive - WBG\West Africa\Mauritania\03_MauSim\Mausim_2024" 
 	
 	// Personal folder with do-file 
-	global thedo     	"${path}/gitrepo\daniel"
+	global thedo     	"C:\Users\wb419055\OneDrive - WBG\West Africa\Mauritania\03_MauSim\Mausim_2024/00_gitrepo\wb419055"
 	
-	 
-
+	// Output files @Gabriel why not part of the tool (Also let's move them to be in the same excel file style) 
 	global xls_sn    	"${path}/03_Tool/policy_inputs/${country}/SN_Sim_tool_VI_${country}_ref.xlsx" // excel file with policy inputs 
 	global xls_out    	"${path}/03_Tool/SN_Sim_tool_VI_`c(username)'.xlsx" // excel file with outputs
 
