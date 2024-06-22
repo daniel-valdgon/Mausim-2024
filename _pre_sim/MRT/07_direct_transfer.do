@@ -1023,6 +1023,13 @@ gen prepri_sec=(ben_pre_school== 1 | ben_primary==1 | ben_secondary == 1)
 ren wilaya region
 ren hid hhid 											 
 
+*merge m:1 hhid using "$presim/01_menages.dta" , nogen keepusing(hhweight hhsize) keep(3)
+*tab region [iw = hhweight] if ben_primary==1 & milieu == 2 
+*tab region [iw = hhweight] if ben_primary==1 & milieu == 2 & inlist(region, 1, 3, 10) , m
+*tab region [iw = hhweight] if ben_primary==1 & milieu == 2 & inlist(region, 1, 3, 10, 4, 5) , m
+*tab region PS4A [iw = hhweight] if ben_primary==1 & milieu == 2 & inlist(region, 1, 3, 10) , m
+
+
 keep hhid region ben*
 
 
@@ -1041,8 +1048,6 @@ gen pben_sesame_seed=runiform()
 gen pben_moins5_seed=runiform()
 gen cesarienne_seed=runiform()
 gen cmu100_seed=runiform()
-
-*merge 1:1 hid using "$data_sn/program_EPCV.dta", nogen keep(3)
 
 save "$presim/07_educ.dta", replace
 
