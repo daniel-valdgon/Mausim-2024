@@ -1,24 +1,27 @@
 /*============================================================================================
  ======================================================================================
 
-	Project:		Subsidies - Tables and Figures
+	Project:		Direct Transfers - Figures Scenarios
 	Author:			Gabriel 
-	Creation Date:	Apr 21, 2023
+	Creation Date:	June 26, 2024
 	Modified:		
 	
-	Note:			This do-file produces all the fugures and tables on subsidies. 
-					It supports several simulations with the excel file Figures_Sub_MRT.xlsx. 
-					It works independently of the tool and uses as input the tool SN_Sim_tool_VI, output data and presim data
-					The 4,5,6 figgres supports several simulations and countries
-					Figure 4 and 6 supports several policies with global policy
-					Figure 5 can support n consumers (type of clients), n tranches and (prepaid or postpaid)
-					
-	Section: 		1. AdminData: Tariff Structure
-					2. AdminData: Consumption and Coverage
-					3. AdminData: Indirect effects: Impact of subsidy
+	Section: 		1. Validation
 					4. Absolute and Relative Incidence
-					5. Electricity coverage per decile
-					6. Povery results
+					5. Marginal Contributions
+					6. Poverty difference
+					
+* @Daniel. 
+
+	Note: 			I copy and paste all figures in the Figures excel. Sections 5 and 6 are not working in this do-file, I took them from shiny app. https://gabrielombo.shinyapps.io/WestAfrica_CEQ/. 
+
+	Excel Figures: 
+					1. Results: Tables from both R-Shiny (Section 5 and 6) and this do-file (Section 4). 
+					2. Distribution: Same tables as in the inputs tool on the reference scenario
+					3. Validation: Tables from this do-file (Section 1) and adm data
+  
+	Scenarios:		V2_MRT_Ref, V2_MRT_Notran, V2_MRT_UBI, V2_MRT_School, V2_MRT_Tekavoul, V2_MRT_Rand 
+				
 ============================================================================================
 ============================================================================================*/
 
@@ -27,21 +30,25 @@ macro drop _all
 
 * Gabriel
 if "`c(username)'"=="gabriellombomoreno" {
-	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Mausim_2024"
-	global path_out		"/Users/gabriellombomoreno/Documents/WorldBank/VAT_tool/QER"
+	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/Mauritania/Mausim_2024"
+	global path_out		"/Users/gabriellombomoreno/Documents/WorldBank/Projects/Mauritania/Mausim_2024"
+	
 	global thedo     	"${path}/02_scripts"
 
-	global xls_out    	"${path_out}/Figures_Sub_Sim_MRT.xlsx"
+	global xls_out    	"${path_out}/Figures_MRT.xlsx"
 	global xls_sn    	"${path}/03_Tool/SN_Sim_tool_VI_`c(username)'.xlsx" 
 	
-	*global presim       "${path}/01_data/2_pre_sim/MRT"
+	global numscenarios	6
 
-	global numscenarios	1
-	global coutryscen	"MRT MRT MRT MRT"	// Fill with the country of each simulation
-	global proj_1		"VF44_MRT_Sub_Ref" 
-	global proj_2		"VF44_MRT_Sub_NoExemp"  
-	global proj_3		"VF44_MRT_Sub_NoSubs" 
-	global proj_4		"VF44_MRT_Sub_NoExemSubs" 
+	global proj_1		"V2_MRT_Ref" 
+	global proj_2		"V2_MRT_Notran"  
+	global proj_3		"V2_MRT_UBI" 
+	global proj_4		"V2_MRT_School" 
+	global proj_5		"V2_MRT_Tekavoul" 
+	global proj_6		"V2_MRT_Rand" 
+
+	global policy		"am_BNSF1 am_BNSF2 am_Cantine am_elmaouna"
+
 }
 
 * Daniel
@@ -55,130 +62,93 @@ if "`c(username)'"=="wb419055" {
 	global xls_sn    	"${path}/03_Tool/SN_Sim_tool_VI_`c(username)'.xlsx" 
 	
 	* Simulations to run
-	global numscenarios	2			// Update
-	global coutryscen	"MRT SEN" 	// Update
-	global proj_1		"" 			// Update
-	global proj_2		"" 			// Update
+	global numscenarios	6
+
+	global proj_1		"V2_MRT_Ref" 
+	global proj_2		"V2_MRT_Notran"  
+	global proj_3		"V2_MRT_UBI" 
+	global proj_4		"V2_MRT_School" 
+	global proj_5		"V2_MRT_Tekavoul" 
+	global proj_6		"V2_MRT_Rand" 
+	
+	global policy		"am_BNSF1 am_BNSF2 am_Cantine am_elmaouna"
 }
 
-	global policy		"subsidy_total subsidy_elec_direct subsidy_elec_indirect"
-	
+	global data_sn 		"${path}/01_data/1_raw/MRT"    
 	global presim       "${path}/01_data/2_pre_sim/MRT"
 	global data_out    	"${path}/01_data/4_sim_output"
 	global theado       "$thedo/ado"
 	scalar t1 = c(current_time)
 
-	set dp comma
 	
 *===============================================================================
 // Run necessary ado files
 *===============================================================================
 
-cap run "$theado//costpush.ado"
+cap run "$theado//_ebin.ado"
 
+	
+	
 /*-------------------------------------------------------/
-	1. AdminData: Tariff Structure
+	1. Validation
 /-------------------------------------------------------*/
 
-local scenario 1
-import excel "$xls_sn", sheet("p_${proj_`scenario'}") firstrow clear 
+	
+use "$data_sn/Datain/individus_2019.dta", clear
 
-global prep "P"
-global user "DPP DMP"
-global tranch "T1 T2"
-
-cap drop keep 
-gen keep = 0
-replace keep = 1 if globalname == "cost_elec_dom" 
-replace keep = 1 if globalname == "cost_elec_prof"
-replace keep = 1 if globalname == "tariff_elec_prof"
-
-* Define length of loops
-local var_names "prep user tranch"
-forvalues i = 1/3 {
-	local v : word `i' of `var_names'
-	local n_`v' 0
-	foreach j of global `v' {
-		local n_`v' = `n_`v'' + 1
-	}
-	global n_`v' `n_`v''
+forvalues i = 1/6 {
+	gen prog_`i' = (PS4A == `i' | PS4B == `i' | PS4C == `i')
+	gen prog_amount_`i' = PS7 if prog_`i' == 1
+	
+	egen hh_prog_`i' = max(prog_`i' == 1), by(hid)
+	egen hh_prog_amount_`i' = total(prog_amount_`i'), by(hid)
 }
 
-* This loop might be usefull when you have several tranches and users
-forvalues i = 1/$n_prep {
-	local t1 : word `i' of $prep
-	forvalues j = 1/$n_user {
-		local t2 : word `j' of $user
-		forvalues k = 1/$n_tranch {
-			local z : word `k' of $tranch
-			replace keep = 1 if globalname == "Tariff`z'_`t1'`t2'"
-		}
-	}	
-}
-keep if keep == 1
-destring globalcontent, replace
-
-drop keep 
-
-export excel "$xls_out", sheet("Tab_1") first(variable) sheetmodify cell(A30)
-
-/*-------------------------------------------------------/
-	2. AdminData: Consumption and Coverage
-/-------------------------------------------------------*/
-
-use "$presim/08_subsidies_elect.dta", clear // It runs the latests simulation done
-
-merge m:1 hhid using "$presim/01_menages.dta" , nogen keepusing(hhweight hhsize) 
-
-*-----  Household coverage
-tabm hh_elec* [iw = hhweight], row matcell(A)
-
-mat colnames A = No Yes
-mat rownames A = HHusesElectricity HHPrincipalSource HHPositiveDepan HHSimulationCoverage
-
-*putexcel set "${xls_out}", sheet("Tab_1") modify
-*putexcel A1 = matrix(A), names
- 
- 
-*-----  Mean consumption
-gen all = 1
-gen kwh_b = consumption_electricite/hhsize
-
-tabstat all kwh_b consumption_electricite [aw = hhweight] if inlist(type_client, 1, 2), s(mean sum) by(type_client) save
-
-matrix A = r(Stat1), r(Stat2), r(StatTotal)
-
-putexcel set "${xls_out}", sheet("Tab_1") modify
-putexcel A10 = matrix(A), names
-
-/*-------------------------------------------------------/
-	3. AdminData: Indirect effects: Impact of subsidy
-/-------------------------------------------------------*/
-
-use "$presim/IO_Matrix.dta", clear 
-
-*Shock
-gen shock=-0.1 if elec_sec==1
-replace shock=0  if shock==.
-
-*Indirect effects 
-des sect_*, varlist 
-local list "`r(varlist)'"
+ren hid hhid
+egen tag = tag(hhid)
+gen uno = 1
 	
-costpush `list', fixed(fixed) priceshock(shock) genptot(elec_tot_shock) genpind(elec_ind_shock) fix
-	
-drop sect_*
+* Result data	
+merge m:1 hhid using "$data_out/output_${proj_1}.dta", nogen keep(3) keepusing(*deciles* ymp_pc yn_pc yd_pc yc_pc hhsize hhweight am*)
 
-gsort elec_ind_shock
-keep sector_name elec_ind_shock elec_tot_shock
-export excel "$xls_out", sheet("Fig_1") first(variable) sheetmodify
+* Programs
+global progs "prog_1 prog_2 prog_3 prog_4 prog_5 prog_6"
+global hh_progs "hh_prog_1 hh_prog_2 hh_prog_3 hh_prog_4 hh_prog_5 hh_prog_6"
+global hh_progs_am "hh_prog_amount_1 hh_prog_amount_2 hh_prog_amount_3 hh_prog_amount_4 hh_prog_amount_5 hh_prog_amount_6"
+
+_ebin ymp_pc [aw=hhweight], nq(10) gen(decile_ymp)
+
+* @Daniel, con las siguientes tablas genero la table de coverage, slides 11
+
+tabm $progs [iw = hhweight] 
+tabm $hh_progs if tag == 1 [iw = hhweight] 
+
+* Individuals
+tab uno [iw = hhweight] if prog_1==1 | prog_2==1 | prog_3==1 | prog_4==1 | prog_5==1 | prog_6==1
+tab uno [iw = hhweight] if prog_1==1 | prog_2==1 | prog_3==1
+
+* Households
+tab uno [iw = hhweight] if (hh_prog_1==1 | hh_prog_2==1 | hh_prog_3==1 | hh_prog_4==1 | hh_prog_5==1 | hh_prog_6==1) & tag == 1
+tab uno [iw = hhweight] if (hh_prog_1==1 | hh_prog_2==1 | hh_prog_3==1) & tag == 1
+
+* @Daniel, con las siguientes dos tablas genero las gráficas de coverage, slides 12 y 13
+
+* Figures
+
+
+tabstat $hh_progs [aw = hhweight] if tag == 1, s(sum) by(decile_ymp) // Slide 12 and 13
+
+tab uno [iw = hhweight] if tag == 1 // All households, Slide 12 and 13
+
 
 
 /*-------------------------------------------------------/
 	4. Absolute and Relative Incidence
 /-------------------------------------------------------*/
 
-forvalues scenario = 1/$numscenarios {
+global income "ymp" // yd, ymp
+
+forvalues scenario = 1/1 { //$numscenarios {
 
 	*-----  Absolute Incidence
 	import excel "$xls_sn", sheet("all${proj_`scenario'}") firstrow clear 
@@ -189,7 +159,7 @@ forvalues scenario = 1/$numscenarios {
 	global policy2 	""
 	foreach var in $policy {
 		replace keep = 1 if variable == "`var'_pc"
-		global policy2	"$policy2 v_`var'_pc_yd" 
+		global policy2	"$policy2 v_`var'_pc_${income}" 
 	}	
 	keep if keep ==1 
 
@@ -203,7 +173,7 @@ forvalues scenario = 1/$numscenarios {
 
 	reshape wide v_, i(decile) j(variable) string
 	drop if decile ==0
-	keep decile *_yd
+	keep decile *_${income}
 
 	foreach var in $policy2 {
 		egen ab_`var' = sum(`var')
@@ -224,7 +194,7 @@ forvalues scenario = 1/$numscenarios {
 	global policy2 	""
 	foreach var in $policy {
 		replace keep = 1 if variable == "`var'_pc"
-		global policy2	"$policy2 v_`var'_pc_yd" 
+		global policy2	"$policy2 v_`var'_pc_${income}" 
 	}	
 	keep if keep ==1 
 
@@ -240,7 +210,7 @@ forvalues scenario = 1/$numscenarios {
 
 	reshape wide v_, i(decile) j(variable) string
 	drop if decile ==0
-	keep decile *_yd
+	keep decile *_${income}
 
 	order decile $policy2
 
@@ -254,98 +224,25 @@ forvalues scenario = 1/$numscenarios {
 
 }
 
+
 clear
 forvalues scenario = 1/$numscenarios {
 	append using `inc_`scenario''
 }
 
-export excel "$xls_out", sheet(Fig_2) first(variable) sheetmodify 
+*export excel "$xls_out", sheet(Fig_2) first(variable) sheetmodify 
 
 
 /*-------------------------------------------------------/
-	5. Electricity coverage per decile
+	6. Marginal contributions
 /-------------------------------------------------------*/
-*-----  Coverage and consumption
-forvalues scenario = 1/$numscenarios {
-	
-	local scenario = 1
-	local vc : word `scenario' of $coutryscen
-	global presim "${path}/01_data/2_pre_sim/`vc'"
-	
-	* Purcases 
-	use "$presim/05_purchases_hhid_codpr.dta", clear
-	*use "$data_sn/pivot2019.dta", clear
+* @Daniel Taken with the shiny app - Disposable Income, not working now in stata
 
-	rename depan depan2
-	
-	merge m:1 hhid using "$presim/01_menages.dta", keepusing(hhweight) keep(3) nogen
-	merge 1:1 hhid codpr using "$presim/08_subsidies_elect.dta", keepusing(codpr_elec hh_elec) nogen
-
-	gen elec=0
-	replace elec = depan2 if hh_elec==1
-
-	collapse (firstnm) hhweight (sum) depan2 elec hh_elec, by(hhid)
-
-	gen share_elec = elec/depan2
-	gen cshare_elec = share_elec if share_elec>0
-	gen coverage = (hh_elec>0)
-	
-	gen inc_r = share_elec*(4.7/3.058 -1)
-	
-	tempfile elec_share
-	save `elec_share'
-	
-	* Output
-	use "$data_out/output_${proj_`scenario'}.dta", clear
-
-	keep hhid depan yd_deciles_pc hhsize hhweight
-	
-	merge 1:1 hhid using "$presim/08_subsidies_elect.dta", keepusing(type_client consumption_electricite prepaid_woyofal) keep(3) nogen
-	
-	merge 1:1 hhid using `elec_share', keep(3) nogen
-
-	qui: sum type_client
-	local n_type_client = r(max)
-	
-	forvalues i = 0/1 { 
-		forvalues j = 1/`n_type_client' { 
-				gen a_user_`i'_`j' = prepaid_woyofal == `i' & type_client==`j' 
-				gen a_c_user_`i'_`j' = consumption_electricite/hhsize if prepaid_woyofal == `i' & type_client==`j' 
-		}
-	}
-
-	collapse (mean) *user_* *share_elec coverage inc_r [aw=hhweight], by(yd_deciles_pc) fast
-
-	foreach v of varlist a_user* *share_elec coverage inc_r {
-		replace `v'=100*`v'
-	}
-		
-	gen scenario = `scenario'
-	order scenario yd_deciles_pc a_user* a_c_user*, first
-	
-	tempfile elec1_`scenario'
-	save `elec1_`scenario'', replace
-
-}
-
-clear
-forvalues scenario = 1/$numscenarios {
-	append using `elec1_`scenario''
-}
-
-export excel "$xls_out", sheet(Fig_3) first(variable) sheetmodify 
-
-
-
-/*-------------------------------------------------------/
-	6. Poverty results
-/-------------------------------------------------------*/
 
 	global variable 	"yd" // Only one
 	global reference 	"zref" // Only one
 
-	*-----  Marginal contributions
-forvalues scenario = 1/$numscenarios {
+forvalues scenario = 1/1 { //$numscenarios {
 
 	import excel "$xls_sn", sheet("all${proj_`scenario'}") firstrow clear 
 	
@@ -433,12 +330,12 @@ export excel "$xls_out", sheet(Fig_4) first(variable) sheetmodify
 
 
 
-
 /*-------------------------------------------------------/
-	6. Poverty difference on simulations
+	7. Poverty difference on simulations
 /-------------------------------------------------------*/
+* @Daniel Taken with the shiny app - Disposable Income, not working now in stata
 
-	global variable 	"yc" // Only one
+	global variable 	"yd" // Only one
 	global reference 	"zref" // Only one
 
 	*-----  Marginal contributions
@@ -536,10 +433,6 @@ forvalues scenario = 1/$numscenarios {
 }
 
 export excel "$xls_out", sheet(Fig_5) first(variable) sheetreplace 
-
-
-
-
 
 
 /*-------------------------------------------------------/
