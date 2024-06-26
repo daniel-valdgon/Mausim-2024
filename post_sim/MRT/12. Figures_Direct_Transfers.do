@@ -86,8 +86,6 @@ if "`c(username)'"=="wb419055" {
 *===============================================================================
 
 cap run "$theado//_ebin.ado"
-
-	
 	
 /*-------------------------------------------------------/
 	1. Validation
@@ -224,12 +222,12 @@ forvalues scenario = 1/1 { //$numscenarios {
 
 }
 
-
+/*
 clear
 forvalues scenario = 1/$numscenarios {
 	append using `inc_`scenario''
 }
-
+*/
 *export excel "$xls_out", sheet(Fig_2) first(variable) sheetmodify 
 
 
@@ -237,7 +235,7 @@ forvalues scenario = 1/$numscenarios {
 	6. Marginal contributions
 /-------------------------------------------------------*/
 * @Daniel Taken with the shiny app - Disposable Income, not working now in stata
-
+not working
 
 	global variable 	"yd" // Only one
 	global reference 	"zref" // Only one
