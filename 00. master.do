@@ -36,7 +36,7 @@ if "`c(username)'"=="gabriellombomoreno" {
 	global thedo     	"${path}/02_scripts"
 
 	global country 		"MRT"
-	global scenario_name_save2 "VTest_${country}_Test"
+	global scenario_name_save2 "V1_${country}_Ref"
 	
 	global hh_coverage	1 // 1: 44% coverage, 2: 76% Coverage
 
@@ -111,10 +111,11 @@ foreach f of local files{
 	 qui: cap run "$theado//`f'"
 }
 
+
 *===============================================================================
 // Run pre_simulation files (Only run once)
 *===============================================================================
-/*
+
 if ("$country" == "MRT") {
 		
 	*qui: include "$thedo_pre/VarStandardization.do" 
@@ -131,7 +132,7 @@ if ("$country" == "MRT") {
 	
 	noi di "You are running the pre simulation do files"
 }
-*/
+
 	*******************************************************************
 	//-Creating the other necessary variables to run do-files 10 & 11. // 
 	

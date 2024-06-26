@@ -432,15 +432,12 @@ save `employment', replace
 
 use "$data_sn/Datain/individus_2019.dta", clear
 
-*ren hid hhid
-*merge m:1 hhid using "$presim/01_menages.dta", nogen keep(3) keepusing(hhsize hhweight)
-
-
 global worry SA1
 global nofood SA4
 global time_drought SA5 // Mars to juin
 global reason_drought SA6
-global shocks "worry nofood time_drought reason_drought"
+
+global shocks "worry nofood time_drought reason_drought SAvar7 SAvar8 SAvar9 SAvar10 SAvar11 SAvar12 SAvar13 SAvar15" 
 
 
 gen worry = $worry == 1
@@ -448,28 +445,29 @@ gen nofood = $nofood == 1
 gen time_drought = ${time_drought}_3 == 1 | ${time_drought}_4 == 1 | ${time_drought}_5 == 1 | ${time_drought}_6 == 1
 gen reason_drought = ${reason_drought}_A == 1 | ${reason_drought}_B == 1 | ${reason_drought}_C == 1 | ${reason_drought}_A == 2 | ${reason_drought}_B == 2 | ${reason_drought}_C == 2 | ${reason_drought}_A == 8 | ${reason_drought}_B == 8 | ${reason_drought}_C == 8
 
+ren SA_8 SA8
+
+forvalues i = 7/13 {
+	gen SAvar`i' = SA`i' == 1
+}
+
+gen SAvar15 = SA15 == 1 
+
 
 /*
 gen prog_2 = (PS4A == 2 | PS4B == 2 | PS4C == 2)
-
 tab prog_2 nofood [iw = hhweight], m row
-
 tab prog_2 nofood [iw = hhweight] if milieu == 2, m row
-
 tab nofood milieu [iw = hhweight], m row
-
-
 tabm SA5* [iw = hhweight], m row nol nofreq
-
 tab1 $shocks [iw = hhweight], m
-
 */
 
 foreach x of global shocks {
 	egen hh_`x' = max(`x'), by(hid)
 }
 
-keep hid hh_worry-hh_reason_drought
+keep hid $shocks
 gduplicates drop
 
 tempfile shocks
@@ -531,7 +529,11 @@ replace elmaouna = 0 if hhsize > 21
 
 replace elmaouna = 0 if ratio > 1 & medium_livestock > 7 & large_livestock > 1
 
+
 ren hhid hid
+
+save "$data_sn/elmaouna.dta", replace
+
 keep hid elmaouna
 
 tempfile elmaouna
@@ -741,6 +743,15 @@ merge 1:m hid using "$data_sn/Datain/individus_2019.dta", gen(mr_id) keepusing(B
 
 keep hid A* B1 B2 B4 B5 wilaya moughataa commune milieu hhweight hhsize PS1 PS2 PS4* PS5* PS6* PS7 C*
 
+global progi prog_1 prog_2 prog_3 prog_4 prog_5 prog_6
+
+
+global hh_prog hh_prog_1 hh_prog_2 hh_prog_3 hh_prog_4 hh_prog_5 hh_prog_6
+ 
+global prog_amount hh_prog_amount_1 hh_prog_amount_2 hh_prog_amount_3 hh_prog_amount_4 hh_prog_amount_5 hh_prog_amount_6
+
+global prog_amount_max hh_prog_amount_max_1 hh_prog_amount_max_2 hh_prog_amount_max_3 hh_prog_amount_max_4 hh_prog_amount_max_5 hh_prog_amount_max_6
+
 forvalues i = 1/6 {
 	gen prog_`i' = (PS4A == `i' | PS4B == `i' | PS4C == `i')
 	egen hh_prog_`i' = max(prog_`i'), by(hid)
@@ -751,16 +762,18 @@ forvalues i = 1/6 {
 	egen hh_prog_amount_max_`i' = max(prog_amount_`i'), by(hid)
 }
 
+egen tag = tag(hid)
+
+tabstat $progi [aw = hhweight], s(sum)
+tabstat $hh_prog [aw = hhweight] if tag == 1, s(sum)
+
+egen prog_n = rowtotal($progi)
 
 keep hid hhweight hhsize wilaya moughataa commune milieu hh_prog*
 
-global prog hh_prog_1 hh_prog_2 hh_prog_3 hh_prog_4 hh_prog_5 hh_prog_6
- 
-global prog_amount hh_prog_amount_1 hh_prog_amount_2 hh_prog_amount_3 hh_prog_amount_4 hh_prog_amount_5 hh_prog_amount_6
 
-global prog_amount_max hh_prog_amount_max_1 hh_prog_amount_max_2 hh_prog_amount_max_3 hh_prog_amount_max_4 hh_prog_amount_max_5 hh_prog_amount_max_6
 
-egen hh_prog_n = rowtotal($prog)
+egen hh_prog_n = rowtotal($hh_prog)
 egen hh_prog_amount_n = rowtotal($prog_amount)
 egen hh_prog_amount_max_n = rowtotal($prog_amount_max)
 
@@ -853,9 +866,8 @@ use "$data_sn/PMT_EPCV_harmonized", clear
 	global employment  /*HH_work*/ HH_work_employee HH_work_farm HH_work_business agriculture industries services /*Pop_not_work*/ 
 	
 	//shocks
-	sum hh_worry hh_nofood hh_time_drought hh_reason_drought [w=hhweight]
-	global shocks hh_worry hh_nofood hh_time_drought hh_reason_drought
-	
+	sum ${shocks} [w=hhweight]
+	*global shocks ${shocks}
 	
 	****
 
@@ -936,9 +948,9 @@ forvalues i = 1/3 {
 	egen min = min(PMT_`i'), by(wilaya)
 	egen max = max(PMT_`i'), by(wilaya)
 	
-	replace PMT_`i' = min if hh_prog_`i' == 1
+	*replace PMT_`i' = min-1 if hh_prog_`i' == 0
 	*replace PMT_`i' = max if milieu == 1
-	replace PMT_`i' = max if large_livestock > 0
+	*replace PMT_`i' = max if large_livestock > 0
 	*replace PMT_`i' = max if medium_livestock > 0
 
 	drop min max

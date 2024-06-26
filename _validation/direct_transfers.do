@@ -20,8 +20,199 @@ Figures:		1. Tekavoul
 global path			"/Users/gabriellombomoreno/Documents/WorldBank/Projects/Mauritania/Mausim_2024"
 global data_sn 		"${path}/01_data/1_raw/MRT"    
 global presim 		"${path}/01_data/2_pre_sim/MRT"    
+global data_out    	"${path}/01_data/4_sim_output"
+global xls_out    	"${path}/03_Tool/SN_Sim_tool_VI_`c(username)'.xlsx"
 
 global GDP 2958000 // MRO
+
+
+/*------------------------------------------------
+* Food Consumption Score - FCS
+------------------------------------------------*/
+
+use "${data_out}/output_VF_MRT_Ref.dta", clear
+
+sum *
+
+tabstat am_BNSF1 am_BNSF2 rev_universel am_Cantine rev_pubstu [aw = hhweight], s(mean sum)
+
+
+
+gen uno = 1
+
+tab yd_deciles_pc [iw = hhweight] if am_BNSF1>0
+tab yd_deciles_pc [iw = hhweight] if am_BNSF2>0
+tab yd_deciles_pc [iw = hhweight] if rev_universel>0
+tab yd_deciles_pc [iw = hhweight] if am_Cantine>0
+
+egen cash_transf = rowtotal(am_BNSF1 am_BNSF2 am_Cantine)
+	
+tabstat cash_transf, s(mean sum) by(yd_deciles_pc)	
+
+
+*----- Read Data
+ren hhid hid 
+merge 1:1 hid using "$data_sn/program_EPCV.dta", nogen keep(3)
+
+ren hid hhid
+merge 1:m hhid using "$data_sn/program_EPCV_indiv.dta" , nogen keep(3)
+
+egen tag = tag(hhid)
+
+
+forvalues i = 1/6 {
+	gen prog_`i' = (PS4A == `i' | PS4B == `i' | PS4C == `i')
+	gen prog_amount_`i' = PS7 if prog_`i' == 1
+}
+
+tabm prog_1 prog_2 prog_3 prog_4 prog_5 prog_6 [iw = hhweight] , col nofreq
+
+forvalues i = 1/6 {
+	*tab yd_deciles_pc [iw = hhweight] if prog_`i' ==1, matcell(A`i') 
+	tab yd_deciles_pc [iw = hhweight] if hh_prog_`i' ==1 & tag ==1, matcell(B`i') 
+}
+
+* YMP pc
+_ebin ymp_pc [aw=hhweight], nq(10) gen(deciel_ymp)
+
+forvalues i = 1/6 {
+	tab deciel_ymp [iw = hhweight] if hh_prog_`i' ==1 & tag ==1, matcell(B`i') 
+}
+
+tabstat hh_prog_1 hh_prog_2 hh_prog_3 hh_prog_4 hh_prog_5 hh_prog_6 hh_prog_n [aw = hhweight] if tag == 1, s(sum) by(deciel_ymp)
+
+tabstat hh_prog_1 hh_prog_2 hh_prog_3 hh_prog_4 hh_prog_5 hh_prog_6 hh_prog_n [aw = hhweight] if tag == 1, s(sum) by(yd_deciles_pc)
+
+tabstat ymp_pc yd_pc [aw = hhweight] if tag == 1, s(sum) by(deciel_ymp)
+
+tabstat ymp_pc yd_pc [aw = hhweight] if tag == 1, s(sum) by(yd_deciles_pc)
+
+
+* Individuals
+tab yd_deciles_pc [iw = hhweight] if prog_1==1 | prog_2==1 | prog_3==1 | prog_4==1 | prog_5==1 | prog_6==1, matcell(C1)
+
+tab yd_deciles_pc [iw = hhweight] if prog_1==1 | prog_2==1 | prog_3==1, matcell(C2)
+
+* Households
+tab yd_deciles_pc [iw = hhweight] if (hh_prog_1==1 | hh_prog_2==1 | hh_prog_3==1 | hh_prog_4==1 | hh_prog_5==1 | hh_prog_6==1) & tag == 1, matcell(C3)
+tab yd_deciles_pc [iw = hhweight] if (hh_prog_1==1 | hh_prog_2==1 | hh_prog_3==1) & tag == 1, matcell(C4)
+
+
+
+mat A = A1, A2, A6
+mat B = B1, B2, B6
+mat C = C1, C2, C3, C4
+
+matlist A
+matlist B
+matlist C
+
+mat T = A, B, C
+matlist T
+
+
+tab tag [iw = hhweight] if hh_prog_1==1 | hh_prog_2==1 | hh_prog_3==1 | hh_prog_4==1 | hh_prog_5==1 | hh_prog_6==1
+
+tab tag [iw = hhweight] if hh_prog_1==1 | hh_prog_2==1 | hh_prog_3==1
+
+
+
+/*-------------------------------------------------------/
+	4. Absolute and Relative Incidence
+/-------------------------------------------------------*/
+
+global proj_1 "VF_MRT_Ref"
+global policy "am_BNSF1 am_BNSF2 am_Cantine am_elmaouna"
+global numscenarios 1
+
+forvalues scenario = 1/$numscenarios {
+
+	*-----  Absolute Incidence
+	import excel "$xls_out", sheet("all${proj_`scenario'}") firstrow clear 
+
+	keep if measure=="benefits" 
+	gen keep = 0
+
+	global policy2 	""
+	foreach var in $policy {
+		replace keep = 1 if variable == "`var'_pc"
+		global policy2	"$policy2 v_`var'_pc_ymp" 
+	}	
+	keep if keep ==1 
+
+	replace variable=variable+"_ymp" if deciles_pc!=.
+	replace variable=variable+"_yd" if deciles_pc==.
+
+	egen decile=rowtotal(yd_deciles_pc deciles_pc)
+
+	keep decile variable value
+	rename value v_
+	drop if decile ==0
+	
+	reshape wide v_, i(decile) j(variable) string
+
+	// keep decile //*_yd
+
+	foreach var in $policy2 {
+		egen ab_`var' = sum(`var')
+		gen in_`var' = `var'*100/ab_`var'
+	}
+
+	keep decile in_*
+
+	tempfile abs
+	save `abs', replace
+
+	*-----  Relative Incidence
+	import excel "$xls_out", sheet("all${proj_`scenario'}") firstrow clear 
+
+	keep if measure=="netcash" 
+	gen keep = 0
+
+	global policy2 	""
+	foreach var in $policy {
+		replace keep = 1 if variable == "`var'_pc"
+		global policy2	"$policy2 v_`var'_pc_ymp" 
+	}	
+	keep if keep ==1 
+
+	replace variable=variable+"_ymp" if deciles_pc!=.
+	replace variable=variable+"_yd" if deciles_pc==.
+
+	egen decile=rowtotal(yd_deciles_pc deciles_pc)
+
+	keep decile variable value
+	replace value = value*(-100) if value < 0
+	replace value = value*(100) if value >= 0
+	rename value v_
+
+	drop if decile ==0
+
+	reshape wide v_, i(decile) j(variable) string
+	keep decile *_yd
+
+	*order decile $policy2
+
+	merge 1:1 decile using `abs', nogen
+	
+	gen scenario = `scenario'
+	order scenario, first
+	
+	tempfile inc_`scenario'
+	save `inc_`scenario'', replace
+
+}
+
+clear
+forvalues scenario = 1/$numscenarios {
+	append using `inc_`scenario''
+}
+
+export excel "$xls_out", sheet(Fig_2) first(variable) sheetmodify 
+
+
+
+
 
 /*------------------------------------------------
 * Programs
@@ -34,10 +225,43 @@ ren hid hhid
 
 merge 1:1 hhid using "$presim/01_menages.dta" , nogen keepusing(hhweight hhsize) keep(3)
 
+merge 1:m hhid using "$presim/07_educ.dta", nogen keep(3)
+
+
+
+
+
+
+*----- Read Data
+use "$data_sn/program_EPCV.dta", clear
+
+ren hid hhid
+
+merge 1:1 hhid using "$presim/01_menages.dta" , nogen keepusing(hhweight hhsize) keep(3)
+
 merge 1:m hhid using "$data_sn/program_EPCV_indiv.dta" , nogen keep(3)
 
 egen tag = tag(hhid)
 gen uno = 1
+
+
+
+forvalues i = 1/6 {
+	gen prog_`i' = (PS4A == `i' | PS4B == `i' | PS4C == `i')
+	gen prog_amount_`i' = PS7 if prog_`i' == 1
+}
+
+tabm prog_1 prog_2 prog_3 prog_4 prog_5 prog_6 [iw = hhweight]
+
+tab uno [iw = hhweight] if prog_1==1 | prog_2==1 | prog_3==1 | prog_4==1 | prog_5==1 | prog_6==1
+tab uno [iw = hhweight] if prog_1==1 | prog_2==1 | prog_3==1
+
+tabm hh_prog_1 hh_prog_2 hh_prog_3 hh_prog_4 hh_prog_5 hh_prog_6 [iw = hhweight] if tag==1
+
+tab tag [iw = hhweight] if hh_prog_1==1 | hh_prog_2==1 | hh_prog_3==1 | hh_prog_4==1 | hh_prog_5==1 | hh_prog_6==1
+tab tag [iw = hhweight] if hh_prog_1==1 | hh_prog_2==1 | hh_prog_3==1
+
+
 
 tab region [aw = hhweight] if tag == 1, m 
 
@@ -179,7 +403,7 @@ ren hhid hid
 keep hid elmaouna
 
 tempfile elmaouna
-save `elmaouna', replace
+save "$data_sn/el.dta", replace
 
 
 
@@ -283,7 +507,7 @@ forvalues i = 1/6 {
 	drop prog_`i' prog_amount_`i'
 }
 
-
+svdbf
 
 /*
 gen n_prog = 0
