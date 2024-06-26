@@ -92,7 +92,7 @@ noi dis as result " 1. Tekavoul "
 	ren beneficiaire beneficiaire_BNSF1
 	drop elegible benefsdep montantdep
 
-	tab beneficiaire_BNSF1 hh_prog_1
+	tab beneficiaire_BNSF1 hh_prog_1 [iw = hhweight]
 	
 	
 /**********************************************************************************/
@@ -101,13 +101,15 @@ noi dis as result " 1. Food transfers"
 
 	gen elegible = 2
 	replace elegible = 1 if hh_prog_2 == 1 
-
+	*replace PMT_2 = 0 if hh_prog_2 == 1 
+	
 	gen benefsdep =.
 	gen montantdep =.
 	merge m:1 departement using "$tempsim/departments2.dta", nogen
 	replace benefsdep = Beneficiaires
 	replace montantdep = Montant
 	drop Beneficiaires Montant
+	
 	
 	if ($pnbsf_PMT ==0) {  // PMT targeting inside each department
 		
@@ -139,8 +141,8 @@ noi dis as result " 1. Food transfers"
 	
 	if ($pnbsf_PMT ==1) {  // PMT targeting inside each department
 		
-		gsort pmt_seed elegible
-		bysort departement (elegible PMT_1 pmt_seed): gen potential_ben= sum(hhweight) // if elegible==1
+		gsort pmt_seed elegible 
+		bysort departement (elegible PMT_2 pmt_seed): gen potential_ben= sum(hhweight) //if elegible==1
 		gen _e1=abs(potential_ben-benefsdep)
 		bysort departement: egen _e=min(_e1)
 		gen _icum=potential_ben if _e==_e1
@@ -156,7 +158,7 @@ noi dis as result " 1. Food transfers"
 		gen am = montantdep*(potential_ben<=Beneficiaires_i)
 		gen beneficiaire = (potential_ben<=Beneficiaires_i)
 		drop Beneficiaires_i potential_ben numicum
-			sum hhweight // if elegible==1
+			sum hhweight //if elegible==1
 			local potential = r(sum)
 			sum beneficiaire [iw=hhweight]
 			nois dis as text "Excel requested `realbenefs' beneficiary hh, and we assigned `r(sum)' of the potential `potential'"
@@ -169,10 +171,8 @@ noi dis as result " 1. Food transfers"
 	ren beneficiaire beneficiaire_BNSF2
 	drop elegible benefsdep montantdep
 	
-	tab beneficiaire_BNSF2 hh_prog_2
+	tab beneficiaire_BNSF2 hh_prog_2 [iw = hhweight]
 
-
-	
 /**********************************************************************************/
 noi dis as result " 1. Elmaouna "
 /**********************************************************************************/
@@ -217,7 +217,7 @@ noi dis as result " 1. Elmaouna "
 	if ($pnbsf_PMT ==1) {  // PMT targeting inside each department
 		
 		gsort pmt_seed -elegible
-		bysort departement (PMT_1 pmt_seed -elegible): gen potential_ben= sum(hhweight) if elegible==1
+		bysort departement (PMT pmt_seed -elegible): gen potential_ben= sum(hhweight) if elegible==1
 		gen _e1=abs(potential_ben-benefsdep)
 		bysort departement: egen _e=min(_e1)
 		gen _icum=potential_ben if _e==_e1
@@ -246,7 +246,7 @@ noi dis as result " 1. Elmaouna "
 	ren beneficiaire beneficiaire_elmaouna	
 	drop elegible benefsdep montantdep
 
-	tab beneficiaire_elmaouna hh_prog_1
+	tab beneficiaire_elmaouna hh_prog_1 [iw = hhweight]
 
 	
 /**********************************************************************************/
@@ -273,11 +273,10 @@ qui {
 	ben_primary==1		attends primary public school 
 	------------------------------------------------*/
 
+	gen elegible = 2
+	replace elegible = 1 if hh_prog_3 == 1
+	
 	gen preandpri=(ben_pre_school== 1 | ben_primary==1)
-
-	*gen preandpri = 2
-	*replace preandpri = 1 if ben_primary==1 & milieu == 2
-
 	
 	gen benefsreg_CS=.
 	gen montantreg_CS=.
@@ -286,9 +285,8 @@ qui {
 	replace montantreg_CS = montant_cantine
 	drop montant_cantine nombre_elevees
 	
-	
-	gsort pmt_seed -preandpri
-	bysort region (pmt_seed -preandpri): gen potential_ben= sum(hhweight) if preandpri==1
+	gsort pmt_seed elegible -preandpri
+	bysort region (pmt_seed elegible -preandpri): gen potential_ben= sum(hhweight) if preandpri==1
 	gen _e1=abs(potential_ben-benefsreg_CS)
 	bysort region: egen _e=min(_e1)
 	gen _icum=potential_ben if _e==_e1
@@ -317,7 +315,7 @@ qui {
 	save `auxiliar_cantine_II' // *save "$dta/auxiliar_cantine.dta", replace
 }
 
-tab beneficiaire_Cantine hh_prog_3
+tab beneficiaire_Cantine hh_prog_3 [iw = hhweight]
 
 /**********************************************************************************/
 noi dis as result " 5. Transfer to students in public institution"
@@ -339,7 +337,6 @@ tempfile Direct_transfers
 save `Direct_transfers'
 
 
-	
 	
 	
 	
