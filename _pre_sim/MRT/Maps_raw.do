@@ -26,30 +26,6 @@ gen all = 1
 gen kwh_m = consumption_electricite/12
 gen kwh_b = consumption_electricite/6
 
-gen bill_m = achats_net_subind/12
-gen bill_b = achats_net_subind/6
-
-cap drop bill_b2
-
-sum bill_b, d
-gen bill_b2 = bill_b
-replace bill_b2 = . if bill_b2 > r(p99) & type_client
-
-
-tabstat all achats_net_subind bill* consumption_electricite kwh_* [aw = hhweight] if inlist(type_client, 1, 2), s(p50 mean sum) by(type_client)
- 
-
-* Maps
-gen kwh_d = kwh_m if domestic == 1 
-gen kwh_s = kwh_m if domestic == 0 
-
-gen depan_d = depan/12 if domestic == 1 
-gen depan_s = depan/12 if domestic == 0 
-
-gen dom = domestic == 1
-gen soc = domestic == 0
-
-mvencode kwh_d kwh_s depan_d depan_s dom soc, mv(0) override
 
 * Admin
 global var A1

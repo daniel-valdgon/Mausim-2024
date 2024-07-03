@@ -36,7 +36,7 @@ if "`c(username)'"=="gabriellombomoreno" {
 	global thedo     	"${path}/02_scripts"
 
 	global country 		"MRT"
-	global scenario_name_save2 "V2_${country}_Rand"
+	global scenario_name_save2 "V2_${country}_Rand44"
 	
 	global hh_coverage	1 // 1: 44% coverage, 2: 76% Coverage
 
@@ -50,7 +50,7 @@ if "`c(username)'"=="andre" {
 	global path     	"C:/Users/andre/Dropbox/Energy_Reform/vat_tool"
 	*global thedo     	"${path}/gitrepo\andres"
 	global country 		"MRT"
-	global scenario_name_save2 "V4_${country}_Sub_Ref"
+	global scenario_name_save2 "V1_${country}_Sub_Ref76"
 	global xls_sn 		"${path}/03_Tool/policy_inputs/${country}/SN_Sim_tool_VI_${country}_ref.xlsx"
 	global xls_out    	"${path}/03_Tool/SN_Sim_tool_VI_`c(username)'.xlsx"	
 }
@@ -115,7 +115,7 @@ foreach f of local files{
 *===============================================================================
 // Run pre_simulation files (Only run once)
 *===============================================================================
-/*
+
 if ("$country" == "MRT") {
 		
 	*qui: include "$thedo_pre/VarStandardization.do" 
@@ -132,7 +132,7 @@ if ("$country" == "MRT") {
 	
 	noi di "You are running the pre simulation do files"
 }
-*/
+
 	*******************************************************************
 	//-Creating the other necessary variables to run do-files 10 & 11. // 
 	

@@ -27,21 +27,21 @@ macro drop _all
 
 * Gabriel
 if "`c(username)'"=="gabriellombomoreno" {
-	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/VAT_tool"
-	global path_out		"/Users/gabriellombomoreno/Documents/WorldBank/VAT_tool/QER"
+	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/Mauritania/Mausim_2024"
+	*global path_out		"/Users/gabriellombomoreno/Documents/WorldBank/Projects/Mauritania/Mausim_2024"
 	global thedo     	"${path}/02_scripts"
 
-	global xls_out    	"${path_out}/Figures_Sub_Sim_MRT.xlsx"
+	global xls_out    	"${path}/03_Tool/Figures_Sub_Coverage_MRT.xlsx"
 	global xls_sn    	"${path}/03_Tool/SN_Sim_tool_VI_`c(username)'.xlsx" 
 	
 	*global presim       "${path}/01_data/2_pre_sim/MRT"
 
-	global numscenarios	1
+	global numscenarios	2
 	global coutryscen	"MRT MRT MRT MRT"	// Fill with the country of each simulation
-	global proj_1		"VF44_MRT_Sub_Ref" 
-	global proj_2		"VF44_MRT_Sub_NoExemp"  
-	global proj_3		"VF44_MRT_Sub_NoSubs" 
-	global proj_4		"VF44_MRT_Sub_NoExemSubs" 
+	global proj_1		"V2_MRT_Rand44" 
+	global proj_2		"V2_MRT_Rand76"  
+	global proj_3		"" 
+	global proj_4		"" 
 }
 
 * Daniel
@@ -266,7 +266,7 @@ export excel "$xls_out", sheet(Fig_2) first(variable) sheetmodify
 *-----  Coverage and consumption
 forvalues scenario = 1/$numscenarios {
 	
-	local scenario = 1
+	*local scenario = 1
 	local vc : word `scenario' of $coutryscen
 	global presim "${path}/01_data/2_pre_sim/`vc'"
 	
