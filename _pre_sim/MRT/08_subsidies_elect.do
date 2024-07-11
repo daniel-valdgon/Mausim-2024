@@ -7,6 +7,8 @@
 * Loading data
 ------------------------------------------------*/
 
+set seed 123456789
+
 *----- Data on household location 
 use "$data_sn/menage_2019.dta", clear
  

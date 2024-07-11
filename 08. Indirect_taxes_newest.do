@@ -318,5 +318,3 @@ tempfile VAT_taxes
 save `VAT_taxes'
 
 
-
-

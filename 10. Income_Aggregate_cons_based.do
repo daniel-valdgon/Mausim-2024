@@ -66,7 +66,7 @@ gen ymp_pc=yd_pre
 
 	local Directaxes 		"income_tax trimf"
 	local Contributions 	"csh_css csh_ipm csh_mutsan" //(AGV) Note that csh_mutsan is created in 4.DirTransfers and not in 3.SSC (as it should). csp_ipr csp_fnr excluded because, in PDI, pension contributions are not included.
-	local DirectTransfers   "am_bourse am_Cantine am_BNSF1 am_BNSF2 am_elmaouna am_subCMU rev_pubstu rev_universel"
+	local DirectTransfers   "am_bourse am_subCMU rev_universel ${prog_total}"
 	
 	local subsidies         "subsidy_elec_direct subsidy_elec_indirect subsidy_fuel_direct subsidy_fuel_indirect subsidy_eau_direct subsidy_eau_indirect "
 	local Indtaxes 			"excise_taxes TVA_direct TVA_indirect"
@@ -239,12 +239,13 @@ replace ipc_month_yr_svy_17=1.009150417 if month==5
 replace ipc_month_yr_svy_17=1.013347483 if month==6
 replace ipc_month_yr_svy_17=1.01598285 if month==7
 
-foreach var in /*line_1 line_2 line_3*/ yd_pc yc_pc  {
+/*foreach var in /*line_1 line_2 line_3*/ yd_pc yc_pc  {
 	gen test=1 if `var'<=zref
 	recode test .= 0
 	noi tab test [iw=hhweight*hhsize]
 	drop test
 }
+*/
 
 }
 
@@ -286,13 +287,13 @@ gen line_2=3.65*365*`ppp16'
 gen line_3=6.85*365*`ppp16'
 
 
-foreach var in /*line_1 line_2 line_3*/ yd_pc yc_pc  {
+/*foreach var in /*line_1 line_2 line_3*/ yd_pc yc_pc  {
 	gen test=1 if `var'<=zref
 	recode test .= 0
 	noi tab test [iw=hhweight*hhsize]
 	drop test
 }
-
+*/
 
 }
 save "$data_out/output.dta", replace
@@ -381,7 +382,7 @@ label var csh_css	"Risque Maladie et Allocation Familiale"
 label var csh_ipm	"Cotisation Santé à IPM"
 label var dirtransf_total	"Transferts directs"
 *label var am_BNSF	"BNSF"
-label var am_Cantine	"Cantines Scolaires"
+*label var am_Cantine	"Cantines Scolaires"
 label var am_bourse	"Bourse d'Éducation Universitaire"
 label var am_subCMU	"Assurance CMU"
 label var subsidy_total	"Subventions"

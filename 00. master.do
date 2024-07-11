@@ -34,15 +34,29 @@ if "`c(username)'"=="gabriellombomoreno" {
 	global pathdata     "/Users/gabriellombomoreno/Documents/WorldBank/Projects/Mauritania/Mausim_2024"
 	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/Mauritania/Mausim_2024"
 	global thedo     	"${path}/02_scripts"
-
-	global country 		"MRT"
-	global scenario_name_save2 "V0_${country}_Test0"
 	
-	global hh_coverage	1 // 1: 44% coverage, 2: 76% Coverage
-	global run_presim	"run" // run, notrun
+	global country 		"SEN"
+	
+	* Parameters
+	global scenario_name_save2 "V0_${country}_Test3"
+	global hh_coverage	1 			// 1: 44% coverage, 2: 76% Coverage
+	global run_presim	"Nrun" 		// run, notrun
 	
 	global xls_sn 		"${path}/03_Tool/policy_inputs/${country}/SN_Sim_tool_VI_${country}_ref.xlsx"
 	global xls_out    	"${path}/03_Tool/SN_Sim_tool_VI_`c(username)'.xlsx"	
+	/*
+	{
+		local tool_gl substr("$path", strrpos("$path", "/")+1, length("$path"))
+		if `tool_gl' == "Regional_tool" {
+			global xls_sn 		"${path}/03_Tool/policy_inputs/${country}/SN_Sim_tool_VI_${country}_ref.xlsx"
+			global xls_out    	"${path}/03_Tool/SN_Sim_tool_VI_`c(username)'.xlsx"	
+		} 
+		if `tool_gl' == "Mausim_2024"{
+			global xls_sn    	"${path}/03_Tool/SN_Sim_tool_VI_`c(username)'.xlsx"	
+			global xls_out    	"${path}/03_Tool/SN_Sim_tool_VI_`c(username)'.xlsx"	
+		}
+	}
+	*/
 }
 
 * Andres
@@ -197,13 +211,14 @@ if ("$country" == "MRT" & "$run_presim" == "run") {
 // 1. Pull Macros
 *-------------------------------------
 
-qui: include  "$thedo/01. Pullglobals.do"
+
+qui: include  "$thedo/01. Pullglobals_new.do"
 
 *-------------------------------------
 // 4. Direct transfers
 *-------------------------------------
 
-qui: include "$thedo/04. Direct Transfer.do"
+qui: include "$thedo/04. Direct Transfer_new.do"
 
 *-------------------------------------
 // 6. Subsidies
