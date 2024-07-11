@@ -10,32 +10,35 @@
 	*- Added a cap in the amount of childs from which a househodl can receive tax credits
 	
 *--------------------------------------------------------------------------------
-	global path "/Users/manganm/Documents/GitHub/vat_tool_GMB" // Madi	
-	*global path     	"C:\Users\wb621266\OneDrive - WBG\Mausim_2024\00_Workshop\Feb_2024\VAT_tool"
-	global xls_sn    	"${path}/03_Tool/SN_Sim_tool_VI_GMB_2.xlsx" 
 
-	global country "GMB"
-
-*==================================================================================
-dis "=================  Indirect Taxes 	==============="
-*==================================================================================
+	*==================================================================================
+	dis "=================  Indirect Taxes 	==============="
+	*==================================================================================
 
 
+		if ("$country" == "MRT") {
+			global sect_fixed "8 9" // 8 9
+			*global sect_elec "8"
+		}
 	
-		import excel "$xls_sn", sheet("TVA_ref_raw_${country}") firstrow clear
+		import excel "$xls_sn", sheet("IO_percentage") firstrow clear
+		save "$presim/IO_percentage.dta", replace
+	
+	
+		import excel "$xls_sn", sheet("TVA_ref_raw") firstrow clear
 		drop produit
 		drop if codpr==.
-		recode elasticities (.=0)
+		*recode elasticities (.=0)
 		tempfile VAT_original
 		save `VAT_original'
 		levelsof codpr, local(products)
 		global products "`products'"
 		foreach z of local products {
-			dis `z'
+			*dis `z'
 			levelsof TVA          if codpr==`z', local(vatrate)
 			global vatrate_`z' `vatrate'
-			*levelsof formelle     if codpr==`z', local(vatform)
-			*global vatform_`z' `vatform'
+			levelsof formelle     if codpr==`z', local(vatform)
+			global vatform_`z' `vatform'
 			levelsof exempted     if codpr==`z', local(vatexem)
 			global vatexem_`z' `vatexem'
 			*levelsof elasticities if codpr==`z', local(vatelas)
@@ -43,18 +46,68 @@ dis "=================  Indirect Taxes 	==============="
 		}
 	
 
-	* Read IO Matrix for reference table to get Indirect effects...
+	*==================================================================================
+	dis "==============              Excises Taxes         					==========="
+	*==================================================================================
+	
+		import excel "$xls_sn", sheet(Excises_ref_raw) first clear
+		
+		keep Produit cat Taux codpr_read
+		
+		*replace Produit=lower(Produit)
+		levelsof cat, local (products)
+		foreach p of local products {
+								
+			levelsof Taux if cat=="`p'", local(tholds_`p')
+			global taux_`p' `tholds_`p''
+			
+			levelsof codpr_read if cat=="`p'", local(tholds_`p')
+			global codpr_read_`p' `tholds_`p''
+			
+			*levelsof Produit if cat=="`p'", local(tholds_`p')
+			*global prod_label_`p' `tholds_`p''		
+		}	
+		
+		split cat, p("_")
+		destring cat2, replace force
+		sum cat2 if cat1 == "ex"
+		global n_excises_taux "`r(max)'"
+	
+	
+		*==================================================================================
+		dis "==============            Subvention Electricité  					==========="
+		*==================================================================================
 
-	* To do...
+/*
+		import excel "$xls_sn", sheet(Subvention_electricite_ref_raw) first clear
+		
+		levelsof Autresname, local(params)
+		foreach z of local params {
+			levelsof Autresvalue  if Autresname=="`z'", local(val)
+			global `z' `val'
+		}
+		
+		drop if Tariff=="."
+		
+		*gen namevar = Threshold+"_"+Type
+		tempfile electricite_raw_dta
+		save `electricite_raw_dta', replace 
 
-
-
-
-
-
-
-
-
+		levelsof Type, local(types)
+		global typesElec "`types'"
+		foreach t of local types {
+			levelsof Threshold if Type=="`t'", local(tholds)
+			global tholdsElec`t' "`tholds'"
+			foreach z of local tholds {
+				levelsof Max  if Threshold=="`z'" & Type=="`t'", local(Max`z')
+				global Max`z'_`t' `Max`z''
+				levelsof Subvention  if Threshold=="`z'" & Type=="`t'", local(Subvention`z') 
+				global Subvention`z'_`t' `Subvention`z''
+				levelsof Tariff  if Threshold=="`z'" & Type=="`t'", local(Tariff`z') 
+				global Tariff`z'_`t' `Tariff`z''
+			}
+		}
+*/
 
 //Note: This implies  a change with respect the tool was designed so we are just inserting this change for certain sheets at a time: 
 	// sheet CMU_raw (NONE but coming)
@@ -567,7 +620,6 @@ else {
 	*(AGV) I included this parameter in the Excel tool. 
 }
 
-*/
 if $save_scenario ==1{
 	global c:all globals
 
@@ -606,6 +658,6 @@ if $save_scenario ==1{
 	
 	export excel "$xls_sn", sheet(legend, modify) cell(AH2)
 }
-
+*/
  
 

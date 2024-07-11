@@ -36,10 +36,11 @@ if "`c(username)'"=="gabriellombomoreno" {
 	global thedo     	"${path}/02_scripts"
 
 	global country 		"MRT"
-	global scenario_name_save2 "V2_${country}_Rand44"
+	global scenario_name_save2 "V0_${country}_Test0"
 	
 	global hh_coverage	1 // 1: 44% coverage, 2: 76% Coverage
-
+	global run_presim	"run" // run, notrun
+	
 	global xls_sn 		"${path}/03_Tool/policy_inputs/${country}/SN_Sim_tool_VI_${country}_ref.xlsx"
 	global xls_out    	"${path}/03_Tool/SN_Sim_tool_VI_`c(username)'.xlsx"	
 }
@@ -116,14 +117,14 @@ foreach f of local files{
 // Run pre_simulation files (Only run once)
 *===============================================================================
 
-if ("$country" == "MRT") {
+if ("$country" == "MRT" & "$run_presim" == "run") {
 		
-	*qui: include "$thedo_pre/VarStandardization.do" 
-
-	qui: include "$thedo_pre/01. Pullglobals_VAT.do" 
+	qui: include "$thedo_pre/01. Pullglobals_ref.do" 
 	
 	qui: include "$thedo_pre/05_spend_dta_purchases.do" 
 	
+	qui: include "$thedo_pre/07_1_dataprep.do" 
+
 	qui: include "$thedo_pre/07_direct_transfer.do" 
 	
 	qui: include "$thedo_pre/08_subsidies_elect.do" 
@@ -221,12 +222,6 @@ qui: include "$thedo/07. Excise_taxes.do"
 *-------------------------------------
 
 qui: include "$thedo/08. Indirect_taxes_newest.do"
-
-*-------------------------------------
-// 9. "Direct transfers" as 
-*-------------------------------------
-
-*qui: include "$thedo/09. DirTransfers.do"
 
 *-------------------------------------
 // 10. Final income aggregation

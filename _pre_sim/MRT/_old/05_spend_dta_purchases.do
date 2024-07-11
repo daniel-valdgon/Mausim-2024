@@ -1,17 +1,57 @@
-** PROYECT: Mauritania CEQ
-** TO DO: Data cleansing of purchases, presim
-** EDITED BY: Gabriel Lombo and Daniel Valderrama
-** LAST MODIFICATION: 18 January 2024
+/*============================================================================================
+ ======================================================================================
+
+	Project:		Read Data used in presim
+	Author:			Gabriel 
+	Creation Date:	Apr 21, 2023
+	Modified:		
+	
+	Note:
+	Data input: 	1. Informality Bachas
+					2. EPCV2019_income
+					3. pivot2019
+
+	Data output: 	1. 01_menages
+					2. 05_purchases_hhid_codpr
+					3. IO_Matrix
+============================================================================================
+============================================================================================*/
 
 
 *ssc install gtools
 *ssc install ereplace
+*net install gr0034.pkg
 
-global country 		"MRT"
-global data_sn 		"${pathdata}/01_data/1_raw/${country}"  
 
-* Bachas Informality - Recode coicop
-use "$data_sn\s_Bachas.dta", clear
+*** Variables Standardization
+** Names
+
+/* Just once
+* Excel file
+global xls_var 			"${tool}/policy_inputs/${country}/_other/Dictionary_${country}.xlsx" 
+
+* Test 1 - RawData
+global data 		"${data_sn}" // Data path
+global all_data 	"pivot2019 EPCV2019_income menage_pauvrete_2019 informality_Bachas_mean" // Data names
+global sheet 		"rawData" // Sheet name
+global n 			4 // Data number
+
+* First step
+*global stage 		"stage1" 
+*var_standardization
+
+* Hand: rename variables
+
+* Second step - allocating
+global stage 		"stage2" 
+var_standardization
+
+
+capture macro drop xls_var data all_data sheet n stage
+*/
+
+*-----  Bachas Informality - Recode coicop
+use "$data_sn/s_informality_Bachas_mean.dta", clear
 
 gen coicop = .
 replace coicop = 1 if product_name == "Food and non-alcoholic beverages"
@@ -32,125 +72,89 @@ labmask coicop, values(product_name)
 tempfile Bachas_mean
 save `Bachas_mean', replace
 
-
-* Get Deciles of income/consumption and aggregate by household
-use "$data_sn/s_EPCV.dta" , clear
-
-ren wgt hhweight
-
-egen tag = tag(hid)
-gen uno =1 
-tab uno [iw = hhweight]
-tab uno tag [iw = hhweight*hhsize]
+save "$presim/bachas.dta", replace
 
 
-collapse (sum) income = pci consum = pcc, by(hid hhweight hhsize wilaya rural)
+*----- Household Data
+use "$data_sn/s_EPCV2019_income.dta" , clear
 
-gen pci = income/hhsize
-gen pcc = consum/hhsize
+collapse (sum) dtot = pcc, by(hhid hhweight hhsize)
 
-merge 1:1 hid using "$data_sn/menage_pauvrete_2019.dta", keep(matched)
+merge 1:1 hhid using "$data_sn/s_menage_pauvrete_2019.dta", keep(matched) nogen
 
-* By Household @gabriel use quantiles or _ebin using stable option 
-xtile q_pci = pci [aw=hhweight*hhsize], n(10)  //@Gabriel delete this xtile if it is not used
-xtile q_pcc = pcc [aw=hhweight*hhsize], n(10) // Use consumption
+gen pcc = dtot/hhsize
 
+gen pondih = hhweight*hhsize
+_ebin pcc [aw=pondih], nq(10) gen(decile_expenditure)
 
+drop pondih
 
-*gen all = 1
-*tab all [iw = hhweight]
-*global vars "pcexp q_pci q_pcc pci pcc income consum"
-*sp_groupfunction [aw=hhweight*hhsize], gini($vars) theil($vars) poverty($vars) povertyline(zref) by(all)
+/**** Create poverty lines
 
+* MRT: i2017 - 1.05, i2018 - 0.65, i2019 - 0.98. ccpi_a
+* MRT: i2017 - 3.0799999,	i2018 - 4.2035796. fcpi_a
+* MRT: i2017 - 2.269, i2018 - 3.07. hcpi_a
+* MRT Inflation according to WorldBank Data Dashboard. 2017 - 2.3, 2018 - 3.1
+* Country specific...
 
-ren hid hhid
+local ppp17 = 12.4452560424805
+local inf17 = 2.3
+local inf18 = 3.1
+local inf19 = 2.3
+cap drop line_1 line_2 line_3
+gen line_1=2.15*365*`ppp17'*`inf17'*`inf18'*`inf19'
+gen line_2=3.65*365*`ppp17'*`inf17'*`inf18'*`inf19'
+gen line_3=6.85*365*`ppp17'*`inf17'*`inf18'*`inf19'
+
+foreach var in /*line_1 line_2 line_3*/ yd_pc yc_pc  {
+	gen test=1 if `var'<=zref
+	recode test .= 0
+	noi tab test [iw=hhweight*hhsize]
+	drop test
+}
+*/
 
 save "$presim/01_menages.dta", replace
 
 
 
-**** TVA import parameters
-clear
-gen codpr=.
-gen TVA=.
-*gen formelle=.
-*gen exempted=.
-local i=1
-foreach prod of global products {
-	set obs `i'
-	qui replace codpr	 = `prod' in `i'
-	qui replace TVA      = ${vatrate_`prod'} if codpr==`prod' in `i'
-	*qui replace formelle = ${vatform_`prod'} if codpr==`prod' in `i'
-	*qui replace exempted = ${vatexem_`prod'} if codpr==`prod' in `i'
-	local i=`i'+1
-}
-tempfile VATrates
-save `VATrates'
+*----- Purchases Data
+use "$data_sn/s_pivot2019.dta" , clear
 
+drop hhweight hhsize
 
-
-* See purchases
-use "$data_sn/pivot2019.dta" , clear
-  
-ren (hid Prod dep) (hhid codpr depan)
-merge m:1 hhid using "$presim/01_menages.dta", nogen //@Gabriel use keepusing here to know which variables are you using
-
-* Informality with bachas data
-ren (q_pcc fonction) (decile_expenditure coicop)
-
-* Impute informality by decil and coicop
-merge m:1 decile_expenditure coicop using `Bachas_mean', gen(mr_bachas)
-
-* Get VAT parameters
-merge m:1 codpr using `VATrates', nogen keep(1 3) keepusing(TVA)
+* Merge data 
+merge m:1 hhid using "$presim/01_menages.dta", nogen keepusing(decile_expenditure hhweight hhsize) keep(3) //Get decile
+merge m:1 decile_expenditure coicop using `Bachas_mean', nogen keepusing(informal_purchase) keep(1 3) // Get informality
 
 * Exclude auto-consumption, donation and transfers
 tab source
 drop if inlist(source, 1, 3)
 
-* Variables of interest
-keep hhid hhweight hsize codpr depan poste milieu wilaya c_inf_mean decile_expenditure TVA
-
 * HH and product level
-collapse (sum) depan [aw=hhweight], by(hhid hsize codpr poste milieu wilaya c_inf_mean decile_expenditure TVA)
+collapse (sum) depan [aw=hhweight], by(hhid hhsize codpr coicop informal_purchase decile_expenditure)
 
-ren c_inf_mean informal_purchase
-
-* We need to compute the purchases before taxes!!!!!!!!!!!!!
-gen depan_for = depan* (1-informal_purchase)/(1+TVA)
-gen depan_inf = depan* informal_purchase
-
-ereplace depan=rowtotal(depan_for depan_inf)  // actually the computation is even more complex because shuold include also the indirect effects  
 
 save "$presim/05_purchases_hhid_codpr.dta", replace
 
 
+*----- IO Matrix
+import excel "$data_sn/IO_Matrix.xlsx", sheet("IO_matrix") firstrow clear
+	 
+local thefixed 		"8 9" 
+local sect_elec  	"8"
+	 	
+gen fixed=0
+foreach var of local thefixed {
+	replace fixed=1  if  sector==`var'
+}
 
-
-* Check
-/* Check dapan
-
-use "$presim/05_purchases_hhid_codpr.dta", clear
-
-collapse (sum) depan (mean) c_inf_mean, by(hhid hsize)
-
-merge 1:1 hhid  using "$presim/01_menages.dta", nogen
-
-gen pcdepan = round(depan/hhsize,0.01)
-
-br pc*
-
-gen comp = pcc - pcdepan
-
-*tabstat pcc pcdepan comp zref, s(p1 p10 p25 p50 p75 p90 p99 mean sum count)
-
-tabstat pcc pcdepan comp zref [aw = hhweight*hhsize], s(p1 p10 p25 p50 p75 p90 p99 mean sum count)
-
-twoway (kdensity pcc) (kdensity pcdepan) 
-*/
-
-
-
+gen elec_sec=0
+foreach var of local sect_elec {
+	replace elec_sec=1  if  sector==`var'
+}
+	
+save "$presim/IO_Matrix.dta", replace
 
 
 

@@ -8,7 +8,7 @@
 ------------------------------------------------*/
 
 *----- Data on household location 
-use "$data_sn/Datain/menage_2019.dta", clear
+use "$data_sn/menage_2019.dta", clear
  
     * Creating the household id
     tostring US_ORDRE A7, replace
@@ -24,7 +24,7 @@ tempfile grape
 save `grape', replace 
 
 *----- Data on connectivity to electricity 
-use "$data_sn/Datain/Capital_Social_2019.dta", clear // I
+use "$data_sn/Capital_Social_2019.dta", clear // I
  
  * Creating the household id
    
@@ -44,7 +44,7 @@ tempfile capital_social
 save `capital_social', replace 
 
 *----- Articles
-use "$data_sn/Datain/menage_2019.dta", clear 
+use "$data_sn/menage_2019.dta", clear 
 
     * hhid
     tostring US_ORDRE A7, replace

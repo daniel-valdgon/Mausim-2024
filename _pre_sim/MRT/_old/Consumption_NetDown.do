@@ -76,8 +76,7 @@ save `secteurs', replace
 
 *1.1.3. Sector data --> IO matrix y vatmat
 
-use "${presim}/IO_Matrix.dta", clear
-
+import excel "${data_sn}/IO_Matrix.xlsx", sheet("IO_matrix") firstrow clear
 drop if sector==.
 
 merge 1:1 sector using `secteurs', nogen
@@ -112,17 +111,22 @@ local list "`r(varlist)'"
 vatmat `list' , exempt(VAT_exempt) pexempt(VAT_exempt_share) sector(sector)  
 
 
-
 /* ------------------------------------------
 1.2  Estimating indirect effects of VAT
  --------------------------------------------*/
 noi dis as result " 1. Effet indirect de la politique de TVA"
 
-* get fixed sector
-merge m:1 sector using "${presim}/IO_Matrix.dta", assert(matched) keepusing(fixed)
+
+*Fixed sectors 
+local thefixed $sect_fixed // Fixed sector is also country specific
+
+gen fixed=0
+foreach var of local thefixed {
+	replace fixed=1  if  sector==`var'
+}
 
 *VAT rates (sector level VAT)
-merge m:1 sector using `io_original_SY', assert(master matched) keepusing(TVA) nogen
+merge m:1 sector using `io_original_SY', /*assert(master matched)*/ keepusing(TVA) nogen
 
 *No price control sectors 
 gen cp=1-fixed
@@ -213,9 +217,16 @@ save `Excises_SY', replace
 1.E Subsidy Indirect effects on prices 
 ------------------------------------*/
 
-use "${presim}/IO_Matrix.dta", clear
 
-* Fixed sector defined previously
+import excel "${data_sn}/IO_Matrix.xlsx", sheet("IO_matrix") firstrow clear
+
+*Define fixed sectors 
+local thefixed $sect_fixed  	//electricite gaz et eau, activites d'administration pub, education et formation, activites de sante et action s, raffinage petrole cokefaction
+
+gen fixed=0
+foreach var of local thefixed {
+	replace fixed=1  if  sector==`var'
+}
 
 *Electricity and Water Shock (weighted average)
 *gen shock = $subsidy_shock_elec_SY + $subsidy_shock_eau_SY if Secteur==22
@@ -271,20 +282,18 @@ drop reps order
 gen achat_gross = depan*pourcentage
 
 
-
 /*------------------------------------
 2.A Expenditures net from VAT 
 ------------------------------------*/
 
 *Calculate net expenditure direct pre-VAT	
-merge m:1 codpr using `VAT_rates_SY', nogen keep(1 3) //assert(match) // notice here we merge!! product-exemption level
+merge m:1 codpr using `VAT_rates_SY', nogen keep(1 3) // assert(match) // notice here we merge!! product-exemption level
 
 assert TVA==0 if exempted==1
 replace TVA=0 if exempted==1 // this should not be needed 
 
 
-merge m:1 sector exempted using `ind_effect_VAT_SY', nogen  assert(match using)  keep(match)
-
+merge m:1 sector exempted using `ind_effect_VAT_SY', nogen  /* assert(match using) */ keep(match)
 
 *EXPANDIR PRODUCTOS POR NIVEL DE INFORMALIDAD 1/0
 
@@ -386,4 +395,20 @@ keep hhid codpr hhsize depan achat* sector pourcentage pondera_informal informal
 
 save "$presim/05_netteddown_expenses_SY.dta", replace
 
+
+/* Data for simulation
+global xls_var 			"${tool}/${country}\Dictionary_${country}.xlsx" 
+
+* Test 1 - RawData
+global data 		"${presim}" // Data path
+global all_data 	"01_menages 05_purchases_hhid_codpr 05_netteddown_expenses_SY" // Data names
+global sheet 		"presimData" // Sheet name
+global n 			3 // Data number
+
+* First step
+global stage 		"stage1" 
+var_standardization
+
+capture macro drop xls_var data all_data sheet n stage
+*/
 

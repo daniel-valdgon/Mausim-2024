@@ -139,8 +139,6 @@
 				global Tariff`z'_`t' `Tariff`z''
 			}
 		}
-		
-		
 	
         *==================================================================================
 	dis "==============                Direct Transfers     				==========="
@@ -148,26 +146,10 @@
 
 *	qui {
 
-		import excel "$xls_sn", sheet(Aux_direct_transfers_raw) first clear
-
-		levelsof cat, local (programs)
-		foreach p of local programs {
-							
-			levelsof prog_index if cat=="`p'", local(tholds_`p')
-			global index_`p' `tholds_`p''
-			
-			levelsof prog_label if cat=="`p'", local(tholds_`p')
-			global label_`p' `tholds_`p''		
-		}		
-		
-		sum prog_index
-		global n_progs "`r(max)'"
-
-
 forvalues i = 1/3 {
 
 		import excel "$xls_sn", sheet(PNBSF`i'_raw) first clear
-		drop if departement ==.		
+		drop if 	departement ==.		
 		tempfile department
 		
 		destring Beneficiaires, replace	
