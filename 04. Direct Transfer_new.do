@@ -122,24 +122,23 @@ noi dis as result " 3. School Feeding Programme "
 /**********************************************************************************/
 
 	merge 1:m hhid  using  "$presim/07_educ.dta", nogen // not matched ae
-
 	
 forvalues i = 1/$n_progs {
 		
 	if ("${pr_div_`i'}" == "departement" | "${pr_div_`i'}" == "region") & "${pr_type_`i'}" == "indiv" {
 	
-		local i = 2
+		local i = 4
 		noi di "Program number `i', ${pr_label_`i'}, assigning by ${pr_div_`i'}"
 
 		gen benefsdep =.
 		gen montantdep =.		
-		merge m:1 region using "$tempsim/${pr_div_`i'}_`i'.dta", nogen
+		merge m:1 departement /*region*/ using "$tempsim/${pr_div_`i'}_`i'.dta", nogen
 		replace benefsdep = beneficiaires
 		replace montantdep = montant
 		drop beneficiaires montant
 		
-		drop departement
-		ren region departement
+		*drop departement
+		*ren region departement
 		
 	if ($pnbsf_PMT ==0) {  // PMT targeting inside each department
 		

@@ -64,7 +64,7 @@ merge 1:1 hhid using `Transfers_InKind' , nogen
 *merge 1:1 hhid using "$presim/gross_ymp_pc.dta" , nogen
 gen ymp_pc=yd_pre
 
-	local Directaxes 		"income_tax trimf"
+	local Directaxes 		"income_tax income_tax_reduc trimf"
 	local Contributions 	"csh_css csh_ipm csh_mutsan" //(AGV) Note that csh_mutsan is created in 4.DirTransfers and not in 3.SSC (as it should). csp_ipr csp_fnr excluded because, in PDI, pension contributions are not included.
 	local DirectTransfers   "am_bourse am_subCMU rev_universel ${prog_total}"
 	
@@ -330,7 +330,7 @@ gen depan_pc=depan/hhsize
 
 *Generate other measures not used in income calculations
 
-gen income_tax_reduc_pc = income_tax_reduc/hhsize
+*gen income_tax_reduc_pc = income_tax_reduc/hhsize
 
 
 *Generate policy aggregations
