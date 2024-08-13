@@ -269,7 +269,7 @@ gen line_3=6.85*365*`ppp17'*`inf17'*`inf18'*`inf19'
 foreach var in /*line_1 line_2 line_3*/ yd_pc yc_pc  {
 	gen test=1 if `var'<=zref
 	recode test .= 0
-	noi tab test [iw=hhweight*hhsize]
+	*noi tab test [iw=hhweight*hhsize]
 	drop test
 }
 

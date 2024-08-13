@@ -31,16 +31,17 @@ if "`c(username)'"=="" {
 * Gabriel - Personal Computer
 if "`c(username)'"=="gabriellombomoreno" {
 	
-	global pathdata     "/Users/gabriellombomoreno/Documents/WorldBank/Projects/Mauritania/Mausim_2024"
-	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/Mauritania/Mausim_2024"
-	global thedo     	"${path}/02_scripts"
+	global pathdata     "/Users/gabriellombomoreno/Documents/WorldBank/Projects/Mausim_2024"
+	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/Mausim_2024"
+	global thedo     	"${path}/02. Scripts"
+	global tool         "${path}/03. Tool" 
 	
 	global country 		"MRT"
 	
 	* Parameters
-	global scenario_name_save2 "V5_${country}"
+	global scenario_name_save2 "Test_${country}_Exemp34"
 	global hh_coverage	1 			// 1: 44% coverage, 2: 76% Coverage
-	global run_presim	"run" 		// run, notrun
+	global run_presim	"Nrun" 		// run, notrun
 	
 	*global xls_sn 		"${path}/03_Tool/policy_inputs/${country}/SN_Sim_tool_VI_${country}_ref.xlsx"
 	*global xls_out    	"${path}/03_Tool/SN_Sim_tool_VI_`c(username)'.xlsx"	
@@ -48,15 +49,14 @@ if "`c(username)'"=="gabriellombomoreno" {
 	{
 		local tool_gl substr("$path", strrpos("$path", "/")+1, length("$path"))
 		if `tool_gl' == "Regional_tool" {
-			global xls_sn 		"${path}/03_Tool/policy_inputs/${country}/SN_Sim_tool_VI_${country}_ref.xlsx"
-			global xls_out    	"${path}/03_Tool/SN_Sim_tool_VI_`c(username)'.xlsx"	
+			global xls_sn 		"${tool}/policy_inputs/${country}/SN_Sim_tool_VI_${country}_ref.xlsx"
+			global xls_out    	"${tool}/SN_Sim_tool_VI_`c(username)'.xlsx"	
 		} 
 		if `tool_gl' == "Mausim_2024"{
-			global xls_sn    	"${path}/03_Tool/SN_Sim_tool_VI_`c(username)'.xlsx"	
-			global xls_out    	"${path}/03_Tool/SN_Sim_tool_VI_`c(username)'.xlsx"	
+			global xls_sn    	"${tool}/SN_Sim_tool_VI_`c(username)'.xlsx"	
+			global xls_out    	"${tool}/SN_Sim_tool_VI_`c(username)'.xlsx"	
 		}
 	}
-
 }
 
 * Andres
@@ -98,12 +98,12 @@ if "`c(username)'"=="wb419055" {
 
 }
 	
-	global data_sn 		"${path}/01_data/1_raw/${country}"    
-	global presim       "${path}/01_data/2_pre_sim/${country}"
-	global tempsim      "${path}/01_data/3_temp_sim"
-	global data_out    	"${path}/01_data/4_sim_output"
+	global data_sn 		"${path}/01. Data/1_raw/${country}"    
+	global presim       "${path}/01. Data/2_pre_sim/${country}"
+	global tempsim      "${path}/01. Data/3_temp_sim"
+	global data_out    	"${path}/01. Data/4_sim_output"
 
-	global tool         "${path}/03_Tool" 
+	global tool         "${path}/03. Tool" 
 	
 	global theado       "$thedo/ado"
 	global thedo_pre    "$thedo/_pre_sim/${country}"
@@ -126,6 +126,7 @@ foreach f of local files{
 	 qui: cap run "$theado//`f'"
 }
 
+
 *===============================================================================
 // Run pre_simulation files (Only run once)
 *===============================================================================
@@ -134,15 +135,15 @@ if ("$country" == "MRT" & "$run_presim" == "run") {
 		
 	qui: include "$thedo_pre/01. Pullglobals_ref.do" 
 	
-	qui: include "$thedo_pre/02_Income_tax.do" 
+	qui: include "$thedo_pre/02. Income_tax.do" 
 	
-	qui: include "$thedo_pre/05_spend_dta_purchases.do" 
+	qui: include "$thedo_pre/05. Spend_dta_purchases.do" 
 	
-	qui: include "$thedo_pre/07_1_dataprep.do" 
+	qui: include "$thedo_pre/07. 1_Dataprep.do" 
 
-	qui: include "$thedo_pre/07_direct_transfer.do" 
+	qui: include "$thedo_pre/07. Direct_transfer.do" 
 	
-	qui: include "$thedo_pre/08_subsidies_elect.do" 
+	qui: include "$thedo_pre/08. Subsidies_elect.do" 
 	
 	qui: include "$thedo_pre/Consumption_NetDown.do"
 	

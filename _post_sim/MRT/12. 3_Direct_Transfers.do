@@ -20,7 +20,7 @@
 					2. Distribution: Same tables as in the inputs tool on the reference scenario
 					3. Validation: Tables from this do-file (Section 1) and adm data
   
-	Scenarios:		V2_MRT_Ref, V2_MRT_Notran, V2_MRT_UBI, V2_MRT_School, V2_MRT_Tekavoul, V2_MRT_Rand 
+	Scenarios:		
 				
 ============================================================================================
 ============================================================================================*/
@@ -30,24 +30,25 @@ macro drop _all
 
 * Gabriel
 if "`c(username)'"=="gabriellombomoreno" {
-	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/Mauritania/Mausim_2024"
-	global path_out		"/Users/gabriellombomoreno/Documents/WorldBank/Projects/Mauritania/Mausim_2024"
 	
-	global thedo     	"${path}/02_scripts"
-
-	global xls_out    	"${path_out}/Figures_MRT.xlsx"
-	global xls_sn    	"${path}/03_Tool/SN_Sim_tool_VI_`c(username)'.xlsx" 
+	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/Mausim_2024"
+	global report "${path}/04. Reports/3. Direct Transfers/2. Presentation/Figures"
 	
-	global numscenarios	6
+	global thedo     	"${path}/02. Scripts"
 
-	global proj_1		"V2_MRT_Ref" 
-	global proj_2		"V2_MRT_Notran"  
-	global proj_3		"V2_MRT_UBI" 
-	global proj_4		"V2_MRT_School" 
-	global proj_5		"V2_MRT_Tekavoul" 
-	global proj_6		"V2_MRT_Rand" 
+	global xls_out    	"${report}/Figures12_Direct_Transfers.xlsx"
+	global xls_sn    	"${path}/03. Tool/SN_Sim_tool_VI_`c(username)'.xlsx"
+	
+	global numscenarios	5
 
-	global policy		"am_BNSF1 am_BNSF2 am_Cantine am_elmaouna"
+	global proj_1		"SumReport_MRT_Ref" 
+	global proj_2		"SumReport_MRT_NoTransf"  
+	global proj_3		"SumReport_MRT_UBI" 
+	global proj_4		"SumReport_MRT_PubSch" 
+	global proj_5		"SumReport_MRT_Tek" 
+	global proj_6		"" 
+
+	global policy		"am_prog_1 am_prog_2 am_prog_3 am_prog_4"
 
 }
 
@@ -71,12 +72,12 @@ if "`c(username)'"=="wb419055" {
 	global proj_5		"V2_MRT_Tekavoul" 
 	global proj_6		"V2_MRT_Rand" 
 	
-	global policy		"am_BNSF1 am_BNSF2 am_Cantine am_elmaouna"
+	global policy		"am_prog_1 am_prog_2 am_prog_3 am_prog_4"
 }
 
-	global data_sn 		"${path}/01_data/1_raw/MRT"    
-	global presim       "${path}/01_data/2_pre_sim/MRT"
-	global data_out    	"${path}/01_data/4_sim_output"
+	global data_sn 		"${path}/01. Data/1_raw/MRT"    
+	global presim       "${path}/01. Data/2_pre_sim/MRT"
+	global data_out    	"${path}/01. Data/4_sim_output"
 	global theado       "$thedo/ado"
 	scalar t1 = c(current_time)
 
@@ -129,14 +130,25 @@ tab uno [iw = hhweight] if (hh_prog_1==1 | hh_prog_2==1 | hh_prog_3==1 | hh_prog
 tab uno [iw = hhweight] if (hh_prog_1==1 | hh_prog_2==1 | hh_prog_3==1) & tag == 1
 
 * Coverage - SLides 12 and 13
-tabstat $hh_progs [aw = hhweight] if tag == 1, s(sum) by(decile_ymp) // Slide 12 and 13
-
 tab uno [iw = hhweight] if tag == 1 // All households
 
-/*-------------------------------------------------------/
-	1. Regional Comparison - maps
-/-------------------------------------------------------*/
+tabstat $hh_progs [aw = hhweight] if tag == 1, s(sum) by(decile_ymp) save
+return list
 
+mat A = r(Stat1) \ r(Stat2) \ r(Stat3) \ r(Stat4) \ r(Stat5) \ r(Stat6) \ r(Stat7) \ r(Stat9) \ r(Stat9) \ r(Stat10)
+
+mat rownames A = 1 2 3 4 5 6 7 8 9 10
+
+putexcel set "$xls_out", modify sheet(Fig_1)
+putexcel A1 = matrix(A), names
+
+*export excel "$xls_out", sheet(Fig_2) first(variable) sheetmodify 
+
+
+/*-------------------------------------------------------/
+	1. Map
+/-------------------------------------------------------*/
+/*
 gen hope_t = inlist(wilaya, 3, 5, 9, 10)
 
 tabstat $hh_progs [aw = hhweight] if tag == 1, by(milieu)
@@ -149,11 +161,6 @@ tab hope_t [iw = hhweight] if (hh_prog_1==1 | hh_prog_2==1 | hh_prog_3==1 | hh_p
 gcollapse (mean) $hh_progs, by(hhid hhsize hhweight wilaya milieu hope_t)
 
 gen uno = 1
-
-*gcollapse (sum) uno $hh_progs [iw = hhweight], by(wilaya milieu hope_t)
-
-*reshape wide uno hh_prog*, i(wilaya hope_t) j(milieu)
-
 
 gcollapse (sum) uno $hh_progs [iw = hhweight], by(wilaya hope_t)
 
@@ -170,7 +177,7 @@ tempfile map
 save `map', replace 
 
 
-shp2dta using "$data_sn/Shapes/mrt_admbnda_adm1_ansade_20240327", database("$data_sn/mrtdb") coordinates("$data_sn/mrtcoord") genid(id) replace
+shp2dta using "$data_sn/Shapes/mrt_admbnda_adm1_ansade_20240327.shp", database("$data_sn/mrtdb") coordinates("$data_sn/mrtcoord") genid(id) replace
 
 use "$data_sn/mrtdb", clear
 
@@ -202,7 +209,7 @@ spmap cat using "$data_sn/mrtcoord", id(id) fcolor(Blues) clm(u) legend(region(l
 gen hh_prog = round(tot)
 
 spmap hh_prog using "$data_sn/mrtcoord", id(id) fcolor(Blues) legend(region(lcolor(black) margin(1 1 1 1) fcolor(white)) pos(10) title("Number of households", size(*0.5) )) 
-
+*/
 
 /*-------------------------------------------------------/
 	4. Absolute and Relative Incidence
@@ -210,7 +217,7 @@ spmap hh_prog using "$data_sn/mrtcoord", id(id) fcolor(Blues) legend(region(lcol
 
 global income "ymp" // yd, ymp
 
-forvalues scenario = 1/1 { //$numscenarios {
+forvalues scenario = 1/$numscenarios {
 
 	*-----  Absolute Incidence
 	import excel "$xls_sn", sheet("all${proj_`scenario'}") firstrow clear 
@@ -286,36 +293,36 @@ forvalues scenario = 1/1 { //$numscenarios {
 
 }
 
-/*
+
 clear
 forvalues scenario = 1/$numscenarios {
 	append using `inc_`scenario''
 }
-*/
-*export excel "$xls_out", sheet(Fig_2) first(variable) sheetmodify 
+
+export excel "$xls_out", sheet(Fig_2) first(variable) sheetmodify 
 
 
 /*-------------------------------------------------------/
-	6. Marginal contributions
+	6. Marginal Contributions
 /-------------------------------------------------------*/
-* @Daniel Taken with the shiny app - Disposable Income, not working now in stata
-not working
 
-	global variable 	"yd" // Only one
+	global variable 	"ymp" // Only one
 	global reference 	"zref" // Only one
 
-forvalues scenario = 1/1 { //$numscenarios {
-
+forvalues scenario = 1/$numscenarios {
+	
 	import excel "$xls_sn", sheet("all${proj_`scenario'}") firstrow clear 
 	
 	* Total values
 	local len : word count $policy
 	
 	sum value if measure == "fgt0" & variable == "${variable}_pc" & reference == "$reference"
-	mat pov = J(1,`len', r(mean))'
+	global pov1 = r(mean)
+	*mat pov = J(1,`len', r(mean))'
 	 
 	sum value if measure == "gini" & variable == "${variable}_pc"
-	mat gini = J(1,`len', r(mean))'
+	*mat gini = J(1,`len', r(mean))'
+	global gini1 = r(mean)
 	
 	* Variables of interest
 	gen keep = 0
@@ -338,8 +345,16 @@ forvalues scenario = 1/1 { //$numscenarios {
 		replace o_variable = "`i'_`v'"  if variable == "${variable}_inc_`v'"
 	}
 	
-	tab o_variable measure [iw = value] if reference == "$reference", matcell(A1)
-	tab o_variable measure [iw = value] if reference == "", matcell(A2)
+	keep o_variable measure value
+	gsort o_variable
+	
+	reshape wide value, i(o_variable) j(measure, string)
+	
+	gen gl_pov = $pov1
+	gen gl_gini = $gini1
+
+	tempfile mc
+	save `mc', replace
 
 *-----  Kakwani	
 	import excel "$xls_sn", sheet("conc${variable}_${proj_`scenario'}") firstrow clear 
@@ -362,25 +377,58 @@ forvalues scenario = 1/1 { //$numscenarios {
 		replace o_variable = "`i'_`v'"  if variable == "`v'_pc"
 	}
 
-	tab o_variable [iw = ${variable}_pc], matcell(B1)
-	tab o_variable [iw = value], matcell(B2)
-	
-	* Matrix
-	mat A = pov, A1, gini, A2, B1, B2
-	
-	mat colnames A = gl_pov poverty gl_gini gini ${variable}_pc conc${variable}
-	mat rownames A = $policy
-		
-	keep o_variable
-	gsort o_variable
+	keep o_variable ${variable}_pc value
+	ren value value_k
 
-	svmat double A,  names(col)
+	merge 1:1 o_variable using `mc', nogen
+	
+	gen scenario = `scenario'
+	order scenario o_variable valuefgt0 valuegini gl_pov gl_gini value_k ${variable}_pc
+	
+	tempfile pov_`scenario'
+	save `pov_`scenario'', replace
+}	
 
+clear
+forvalues scenario = 1/$numscenarios {
+	append using `pov_`scenario''
+}
+
+export excel "$xls_out", sheet(Fig_3) first(variable) sheetmodify 
+
+
+/*-------------------------------------------------------/
+	7. Poverty and Inequality
+/-------------------------------------------------------*/
+
+	global variable 	"yd" // Only one
+	global reference 	"zref" // Only one
+
+forvalues scenario = 1/$numscenarios {
+	
+	import excel "$xls_sn", sheet("all${proj_`scenario'}") firstrow clear 
+	
+	* Total values
+	local len : word count $policy
+	
+	sum value if measure == "fgt0" & variable == "${variable}_pc" & reference == "$reference"
+	global pov1 = r(mean)
+	 
+	sum value if measure == "gini" & variable == "${variable}_pc"
+	global gini1 = r(mean)
+	
+	clear
+	set obs 1 
+	
+	gen gl_pov = $pov1
+	gen gl_gini = $gini1
+	
 	gen scenario = `scenario'
 	order scenario, first
 	
 	tempfile pov_`scenario'
 	save `pov_`scenario'', replace
+	
 }	
 
 clear
@@ -391,110 +439,6 @@ forvalues scenario = 1/$numscenarios {
 export excel "$xls_out", sheet(Fig_4) first(variable) sheetmodify 
 
 
-
-/*-------------------------------------------------------/
-	7. Poverty difference on simulations
-/-------------------------------------------------------*/
-* @Daniel Taken with the shiny app - Disposable Income, not working now in stata
-
-	global variable 	"yd" // Only one
-	global reference 	"zref" // Only one
-
-	*-----  Marginal contributions
-forvalues scenario = 1/$numscenarios {
-	
-	import excel "$xls_sn", sheet("all${proj_`scenario'}") firstrow clear 
-	
-	* Total values
-	local len : word count $policy
-	
-	sum value if measure == "fgt0" & variable == "${variable}_pc" & reference == "$reference"
-	mat pov = J(1,`len', r(mean))' 
-	
-	sum value if measure == "gini" & variable == "${variable}_pc"
-	mat gini = J(1,`len', r(mean))'
-	
-	* Variables of interest
-	gen keep = 0
-	global policy2 	"" 
-	foreach var in $policy {
-		replace keep = 1 if variable == "${variable}_inc_`var'"
-		global policy2	"$policy2 v_`var'_pc_${variable}" 
-	}	
-	
-	keep if keep == 1
-	
-	keep if inlist(measure, "fgt0", "gini") 
-	keep if inlist(reference, "$reference", "") 
-	
-	* Order the results
-	gen o_variable = ""
-	local len : word count $policy
-	forvalues i = 1/`len' {
-		local v : word `i' of $policy
-		replace o_variable = "`i'_`v'"  if variable == "${variable}_inc_`v'"
-	}
-	
-	tab o_variable measure [iw = value] if reference == "$reference", matcell(A1)
-	tab o_variable measure [iw = value] if reference == "", matcell(A2)
-
-*-----  Kakwani	
-
-	import excel "$xls_sn", sheet("conc${variable}_${proj_`scenario'}") firstrow clear 
-	
-	keep ${variable}_centile_pc ${variable}_pc $policy
-	keep if ${variable}_centile_pc == 999
-	
-	ren * var_*
-	ren var_${variable}_centile_pc ${variable}_centile_pc
-	ren var_${variable}_pc ${variable}_pc
-	
-	reshape long var_, i(${variable}_centile_pc) j(variable, string)
-	ren var_ value
-	
-	* Order the results
-	gen o_variable = ""
-	local len : word count $policy
-	forvalues i = 1/`len' {
-		local v : word `i' of $policy
-		replace o_variable = "`i'_`v'"  if variable == "`v'_pc"
-	}
-
-	tab o_variable [iw = ${variable}_pc], matcell(B1)
-	tab o_variable [iw = value], matcell(B2)
-	
-	mat J = J(1,1, .)
-	
-	* temporal fix for VAT Ind Effects
-	local dim `= rowsof(B2)'	
-	if ("`dim'" == "2") {
-		mat B2 = B2 \ J
-	}
-	
-	* Matrix
-	mat A = pov, A1, gini, A2, B1, B2
-	
-	mat colnames A = gl_pov poverty gl_gini gini ${variable}_pc conc${variable}
-	mat rownames A = $policy
-	
-	keep o_variable
-	gsort o_variable
-
-	svmat double A,  names(col)
-	
-	gen scenario = `scenario'
-	order scenario, first
-	
-	tempfile pov_`scenario'
-	save `pov_`scenario'', replace
-}	
-
-clear
-forvalues scenario = 1/$numscenarios {
-	append using `pov_`scenario''
-}
-
-export excel "$xls_out", sheet(Fig_5) first(variable) sheetreplace 
 
 
 /*-------------------------------------------------------/
@@ -509,9 +453,6 @@ forvalues scenario = 1/$numscenarios {
 	gen scenario = `scenario'
 	gen name = "${proj_`scenario'}"
 	
-	local vc : word `scenario' of $coutryscen
-	gen country = "`vc'"
-	
 	tempfile name_`scenario'
 	save `name_`scenario'', replace
 }
@@ -521,7 +462,7 @@ forvalues scenario = 1/$numscenarios {
 	append using `name_`scenario''
 }
 
-export excel "$xls_out", sheet("Tab_1") first(variable) sheetmodify cell(A16)
+export excel "$xls_out", sheet("Tab_1") first(variable) sheetmodify cell(A1)
 
 
 scalar t2 = c(current_time)

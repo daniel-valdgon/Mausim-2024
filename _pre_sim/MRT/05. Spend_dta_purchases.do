@@ -1,5 +1,5 @@
-/*============================================================================================
- ======================================================================================
+/*======================================================
+ =======================================================
 
 	Project:		Read Data used in presim
 	Author:			Gabriel 
@@ -14,44 +14,20 @@
 	Data output: 	1. 01_menages
 					2. 05_purchases_hhid_codpr
 					3. IO_Matrix
-============================================================================================
-============================================================================================*/
+========================================================
+=======================================================*/
 
 
 *ssc install gtools
 *ssc install ereplace
 *net install gr0034.pkg
 
-
-*** Variables Standardization
-** Names
-
-/* Just once
-* Excel file
-global xls_var 			"${tool}/policy_inputs/${country}/_other/Dictionary_${country}.xlsx" 
-
-* Test 1 - RawData
-global data 		"${data_sn}" // Data path
-global all_data 	"pivot2019 EPCV2019_income menage_pauvrete_2019 informality_Bachas_mean" // Data names
-global sheet 		"rawData" // Sheet name
-global n 			4 // Data number
-
-* First step
-*global stage 		"stage1" 
-*var_standardization
-
-* Hand: rename variables
-
-* Second step - allocating
-global stage 		"stage2" 
-var_standardization
-
-
-capture macro drop xls_var data all_data sheet n stage
-*/
-
 *-----  Bachas Informality - Recode coicop
-use "$data_sn/s_informality_Bachas_mean.dta", clear
+use "$data_sn/informality_Bachas_mean.dta", clear
+
+* Standardization
+keep decile_expenditure product_name c_inf_mean
+ren c_inf_mean informal_purchase
 
 gen coicop = .
 replace coicop = 1 if product_name == "Food and non-alcoholic beverages"
@@ -72,15 +48,21 @@ labmask coicop, values(product_name)
 tempfile Bachas_mean
 save `Bachas_mean', replace
 
-save "$presim/bachas.dta", replace
-
 
 *----- Household Data
-use "$data_sn/s_EPCV2019_income.dta" , clear
+use "$data_sn/EPCV2019_income.dta" , clear
 
+* Standardization
+keep hid idp wgt hhsize pcc
+
+ren hid hhid
+ren wgt hhweight
+
+* Disposable Income
 collapse (sum) dtot = pcc, by(hhid hhweight hhsize)
 
-merge 1:1 hhid using "$data_sn/s_menage_pauvrete_2019.dta", keep(matched) nogen
+ren hhid hid
+merge 1:1 hid using "$data_sn/menage_pauvrete_2019.dta", keep(matched) keepusing(hhweight hhsize zref pcexp) nogen
 
 gen pcc = dtot/hhsize
 
@@ -88,7 +70,7 @@ gen pondih = hhweight*hhsize
 _ebin pcc [aw=pondih], nq(10) gen(decile_expenditure)
 
 drop pondih
-
+ren hid hhid
 /**** Create poverty lines
 
 * MRT: i2017 - 1.05, i2018 - 0.65, i2019 - 0.98. ccpi_a
@@ -119,9 +101,15 @@ save "$presim/01_menages.dta", replace
 
 
 *----- Purchases Data
-use "$data_sn/s_pivot2019.dta" , clear
+use "$data_sn/pivot2019.dta" , clear
 
-drop hhweight hhsize
+* Standardization
+keep hid Prod source methode dep fonction class_EPCV2019 wta_pop
+
+ren hid hhid
+ren Prod codpr
+ren dep depan
+ren fonction coicop
 
 * Merge data 
 merge m:1 hhid using "$presim/01_menages.dta", nogen keepusing(decile_expenditure hhweight hhsize) keep(3) //Get decile
@@ -157,6 +145,8 @@ foreach var of local sect_elec {
 save "$presim/IO_Matrix.dta", replace
 
 
+*----- Create Maps
+shp2dta using "$data_sn/Shapes/mrt_admbnda_adm1_ansade_20240327.shp", database("$presim/mrtdb") coordinates("$presim/mrtcoord") genid(id) replace
 
 
 

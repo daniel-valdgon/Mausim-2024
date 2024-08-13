@@ -18,42 +18,56 @@ merge m:1 hhid using "$presim/01_menages.dta", nogen keep(3) keepusing(hhweight 
 
 gen uno = 1
 
-keep hhid hhweight B2 B4 E* F* G0
+keep hhid hhweight wilaya milieu B2 B4 E* F* G0
 
-/* Working-age population
-gen female = (B2==2)
-gen wa_pop = inrange(B4,15,64)
-gen nwa_pop = inrange(B4,0,14)
-gen n2wa_pop = inrange(B4,65,96)
+sum E10 E20A2 E20A1 E19 E15
 
-tab1 E6A E6B [iw = hhweight]
-
-* Individuals
-tab E10 E19 [iw = hhweight], row nofreq
-tab E10 E12 [iw = hhweight], row nofreq
-*/
 ** Tax income
-* Principal activity
-gen employee_1 = .
-replace employee_1 = 1 if inrange(E10, 1, 1)
-replace employee_1 = 0 if inrange(E10, 2, 12)
+* Income Imputation
 
-gen tax_ind_1 = E18B == 1 & E20A2>0 & E20A2!=. & E20A1 == 1
+tab E20A1 [iw = hhweight] // Individuals who didnt want to report the money received
+
+gen pos = E20A2>0 & E20A2!=. 
+tab pos [iw = hhweight] if E18B == 1 // 23,815 to impute
+
+preserve 
+
+	tabstat E20A2 [aw = hhweight] if E18B == 1 & pos == 1, s(p50) by(E11)
+
+
+	keep if E18B == 1
+
+	gen tot = 1
+	gen n_imp = pos == 0
+
+	collapse (sum) tot pos n_imp (p50) median_inc = E20A2, by(wilaya E11)
+
+	tempfile wages_impute
+	save `wages_impute', replace
+
+restore
+
+* Merge imputed wages
+merge m:1 wilaya E11 using `wages_impute', gen(mr_imp) keep(1 3) keepusing(median_inc)
+
+gen income_imp = median_inc if E18B == 1 & pos == 0
+
+egen income = rowtotal(E20A2 income_imp)
+
+tabstat E20A2 income income_imp [aw = hhweight] if E18B == 1, s(p50) by(wilaya)
+
+
+gen pos2 = income>0 & income!=. 
+
+tab pos2 pos [iw = hhweight] if E18B == 1 // 23,815 to impute
+
+* Principal activity
+
+gen tax_ind_1 = E18B == 1 & pos == 1
 replace tax_ind_1 = 0 if E19 == 7
 
-gen tax_base_1 = E20A2*E15 if tax_ind_1 == 1
- 
-
-/* Secondary activity
-gen employee_2 = .
-replace employee_2 = 1 if inrange(E27, 1, 1)
-replace employee_2 = 0 if inrange(E27, 2, 12)
-
-gen tax_ind_2 = employee_2 == 1 & E31A2>0 & E31A2!=. & E31A1 == 1
-gen tax_base_2 = E31A2*E29 if tax_ind_2 == 1
-
-gen tax_ind = tax_ind_1 == 1 | tax_ind_2 == 1
-*/
+gen tax_base_1 = income*12 if tax_ind_1 == 1
+  
 * Allowances
 gen allow1 = 60000
 gen allow2 = tax_base_1 * 0.20 if E19 == 6
@@ -63,7 +77,6 @@ replace allowance = (-1) * allowance
 
 egen tax_base = rowtotal(tax_base_1 allowance)
 replace tax_base = 0 if tax_base <0
-
 
 * Exemptions
 gen exemptions = 0
@@ -76,9 +89,9 @@ sum tax_ind allowance tax_base [iw = hhweight]
 
 
 * Tax
-local tax1 = 0.1 // 0.15
-local tax2 = 0.2 // 0.25
-local tax3 = 0.3 // 0.40
+local tax1 = 0.15 // 0.15
+local tax2 = 0.25 // 0.25
+local tax3 = 0.40 // 0.40
 
 gen tranche = 0
 replace tranche = 1 if inrange(tax_base, 1, 90000) 

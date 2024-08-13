@@ -29,7 +29,7 @@ if "`c(username)'"=="gabriellombomoreno" {
 	
 	global numscenarios	1
 
-	global proj_1		"V0_MRT_Test4" 
+	global proj_1		"V6_MRT" 
 
 	global policy		"income_tax"
 
