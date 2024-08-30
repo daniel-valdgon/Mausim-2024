@@ -530,7 +530,7 @@ replace elmaouna = 0 if habitation == 1
 replace elmaouna = 0 if adults > 2
 replace elmaouna = 0 if hhsize > 21
 
-replace elmaouna = 0 if ratio > 1 & medium_livestock > 7 & large_livestock > 1
+*replace elmaouna = 0 if ratio > 1 & medium_livestock > 7 & large_livestock > 1
 
 ren hhid hid
 

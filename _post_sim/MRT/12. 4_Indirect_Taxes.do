@@ -27,11 +27,11 @@ if "`c(username)'"=="gabriellombomoreno" {
 	global xls_out    	"${report}/Figures12_Indirect_Taxes.xlsx"
 	global xls_sn    	"${path}/03. Tool/SN_Sim_tool_VI_`c(username)'.xlsx"
 	
-	global numscenarios	5
-	global proj_1		"SumReport_MRT_Ref" 
-	global proj_2		"SumReport_MRT_NoExemp"  
-	global proj_3		"SumReport_MRT_NoExempRR" 
-	global proj_4		"Test_MRT_Exemp345"  
+	global numscenarios	4
+	global proj_1		"v3_MRT_Ref" 
+	global proj_2		"v3_MRT_NoExemp"  
+	global proj_3		"v3_MRT_NoExSomeFood" 
+	global proj_4		"v3_MRT_NoExFood"  
 	global proj_5		""  
 
 	
@@ -189,20 +189,11 @@ cap run "$theado//_ebin.ado"
 	
 	
 
-	/*---------- 4. Products less consumed by the poor ​
-	use "$presim/05_purchases_hhid_codpr.dta", clear
-	
-	label drop _all
-	
-	keep codpr coicop
-	gduplicates drop 
-	gsort codpr
-	
-	br
-	
+	*---------- 4. Products less consumed by the poor ​
 	use "$presim/05_purchases_hhid_codpr.dta", clear
 
 	gen poor = inrange(decile, 1, 4)
+	
 	gen quintil = 0
 	replace quintil = 1 if inrange(decile, 1, 2)
 	replace quintil = 2 if inrange(decile, 3, 4)
@@ -210,11 +201,25 @@ cap run "$theado//_ebin.ado"
 	replace quintil = 4 if inrange(decile, 7, 8)
 	replace quintil = 5 if inrange(decile, 9, 10)
 	
-	gcollapse (sum) sum=depan (mean) mean = depan (p50) median = depan, by(coicop quintil)
+	gen bottom40 = 0
+	replace bottom40 = 1 if inrange(decile, 1, 4)
+	replace bottom40 = 2 if inrange(decile, 10, 10)
+
 	
-	tab coicop quintil [iw = mean]
+	gcollapse (sum) sum=depan (mean) value = depan (p50) median = depan, by(codpr bottom40)
 	
-*/	
+	keep codpr bottom40 value
+	reshape wide value, i(codpr) j(bottom40)
+	
+	*egen bottom40 = rowtotal(value1 value2 value3 value4)
+	
+	*gen ratio2 = value10 / bottom40
+	
+	gen ratio = value2/value1
+	
+	*tab coicop quintil [iw = mean]
+	
+
 /*-------------------------------------------------------/
 	4. Absolute and Relative Incidence
 /-------------------------------------------------------*/

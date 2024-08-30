@@ -37,16 +37,12 @@ if "`c(username)'"=="gabriellombomoreno" {
 	global tool         "${path}/03. Tool" 
 	
 	global country 		"MRT"
-	
-	* Parameters
-	global scenario_name_save2 "Test_${country}_Exemp34"
-	global hh_coverage	1 			// 1: 44% coverage, 2: 76% Coverage
-	global run_presim	"Nrun" 		// run, notrun
-	
-	*global xls_sn 		"${path}/03_Tool/policy_inputs/${country}/SN_Sim_tool_VI_${country}_ref.xlsx"
-	*global xls_out    	"${path}/03_Tool/SN_Sim_tool_VI_`c(username)'.xlsx"	
+	global run_presim 	0
 
 	{
+	*global xls_sn 		"${path}/03_Tool/policy_inputs/${country}/SN_Sim_tool_VI_${country}_ref.xlsx"
+	*global xls_out    	"${path}/03_Tool/SN_Sim_tool_VI_`c(username)'.xlsx"	
+		
 		local tool_gl substr("$path", strrpos("$path", "/")+1, length("$path"))
 		if `tool_gl' == "Regional_tool" {
 			global xls_sn 		"${tool}/policy_inputs/${country}/SN_Sim_tool_VI_${country}_ref.xlsx"
@@ -126,13 +122,15 @@ foreach f of local files{
 	 qui: cap run "$theado//`f'"
 }
 
+dbbd
 
 *===============================================================================
 // Run pre_simulation files (Only run once)
 *===============================================================================
 
-if ("$country" == "MRT" & "$run_presim" == "run") {
-		
+if ("$country" == "MRT" & $run_presim == 1) {
+
+	
 	qui: include "$thedo_pre/01. Pullglobals_ref.do" 
 	
 	qui: include "$thedo_pre/02. Income_tax.do" 
@@ -147,7 +145,7 @@ if ("$country" == "MRT" & "$run_presim" == "run") {
 	
 	qui: include "$thedo_pre/Consumption_NetDown.do"
 	
-	noi di "You are running the pre simulation do files"
+	noi di "You run the pre simulation do files"
 }
 
 	*******************************************************************
@@ -213,7 +211,7 @@ if ("$country" == "MRT" & "$run_presim" == "run") {
 // 1. Pull Macros
 *-------------------------------------
 
-qui: include  "$thedo/01. Pullglobals_new.do"
+qui: include  "$thedo/01. Pullglobals.do"
 
 *-------------------------------------
 // 2. Direct taxes
@@ -225,7 +223,7 @@ qui: include "$thedo/02. Income Tax.do"
 // 4. Direct transfers
 *-------------------------------------
 
-qui: include "$thedo/04. Direct Transfer_new.do"
+qui: include "$thedo/04. Direct Transfer.do"
 
 *-------------------------------------
 // 6. Subsidies

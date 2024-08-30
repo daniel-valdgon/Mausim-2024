@@ -19,17 +19,24 @@ macro drop _all
 
 * Gabriel
 if "`c(username)'"=="gabriellombomoreno" {
-	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/Mauritania/Mausim_2024"
-	global path_out		"/Users/gabriellombomoreno/Documents/WorldBank/Projects/Mauritania/Mausim_2024"
 	
-	global thedo     	"${path}/02_scripts"
-
-	global xls_out    	"${path_out}/Figures_MRT.xlsx"
-	global xls_sn    	"${path}/03_Tool/SN_Sim_tool_VI_`c(username)'.xlsx" 
+	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/Mausim_2024"
+	global report 		"${path}/04. Reports/2. Direct Taxes/2. Presentation/Figures"
 	
-	global numscenarios	1
+	global thedo     	"${path}/02. Scripts"
 
-	global proj_1		"V6_MRT" 
+	global xls_out    	"${report}/Figures12_Direct_Transfers.xlsx"
+	global xls_sn    	"${path}/03. Tool/SN_Sim_tool_VI_`c(username)'.xlsx"
+	
+	global numscenarios	7
+
+	global proj_1		"v3_MRT_Ref" 
+	global proj_2		"v1_MRT_NoTrans"  
+	global proj_3		"v1_MRT_UBI" 
+	global proj_4		"v4_MRT_Tekavoul" 
+	global proj_5		"v4_MRT_School" 
+	global proj_6		"v4_MRT_Elmaouna" 
+	global proj_7		"v4_MRT_FoodT" 
 
 	global policy		"income_tax"
 

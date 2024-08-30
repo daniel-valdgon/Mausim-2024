@@ -37,11 +37,12 @@ if "`c(username)'"=="gabriellombomoreno" {
 	global xls_sn    	"${path}/03. Tool/SN_Sim_tool_VI_`c(username)'.xlsx" 
 	
 
-	global numscenarios	1
-	global coutryscen	"MRT"	// Fill with the country of each simulation
-	global proj_1		"SumReport_MRT_Ref" 
-	global proj_2		""  
-	global proj_3		"" 
+	global numscenarios	3
+	global coutryscen	"MRT MRT MRT"	// Fill with the country of each simulation
+	
+	global proj_1		"v3_MRT_Ref" 
+	global proj_2		"v3_MRT_ElecRef"  
+	global proj_3		"v3_MRT_Compen" 
 	global proj_4		"" 
 }
 

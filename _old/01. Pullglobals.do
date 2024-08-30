@@ -149,48 +149,38 @@
 *	qui {
 
 		import excel "$xls_sn", sheet(Aux_direct_transfers_raw) first clear
-		
-		split cat, p("_")
-		*destring cat2, replace
-		
-		levelsof cat2, local (programs)
-		foreach p of local programs {						
-				
-			levelsof prog_label if cat2=="`p'", local(tholds_`p')
-			global pr_label_`p' `tholds_`p''	
+
+		levelsof cat, local (programs)
+		foreach p of local programs {
+							
+			levelsof prog_index if cat=="`p'", local(tholds_`p')
+			global index_`p' `tholds_`p''
 			
-			levelsof division if cat2=="`p'", local(tholds_`p')
-			global pr_div_`p' `tholds_`p''
-			
-			levelsof type if cat2=="`p'", local(tholds_`p')
-			global pr_type_`p' `tholds_`p''
-		}
+			levelsof prog_label if cat=="`p'", local(tholds_`p')
+			global label_`p' `tholds_`p''		
+		}		
 		
-		destring cat2, replace
-		sum cat2  
+		sum prog_index
 		global n_progs "`r(max)'"
 
-		
-	forvalues i = 1/ $n_progs {
-		
-		if "${pr_div_`i'}" == "departement"  | "${pr_div_`i'}" == "region"  {
-			*local i = 1
-			import excel "$xls_sn", sheet(prog_`i'_raw) first clear
-			drop if location ==.		
-			
-			destring beneficiaires, replace	
-			destring montant, replace		
 
-			ren location ${pr_div_`i'}
+forvalues i = 1/3 {
+
+		import excel "$xls_sn", sheet(PNBSF`i'_raw) first clear
+		drop if departement ==.		
+		tempfile department
+		
+		destring Beneficiaires, replace	
+		destring Montant, replace		
+
+		keep departement Beneficiaires Montant
+		
+		save `department'
+		save "$tempsim/departments`i'.dta", replace 
+		
+}	
 			
-			keep ${pr_div_`i'} beneficiaires montant
-			
-			*save `department'
-			save "$tempsim/${pr_div_`i'}_`i'.dta", replace 
-		}
-	}	
-			
-		/**** School Cantines
+		**** School Cantines
 
 		import excel "$xls_sn", sheet(Cantine_scolaire_raw) first clear
 		drop if Region ==.
@@ -204,7 +194,7 @@
 		tempfile cantine
 		save `cantine'
 		save "$tempsim/cantine.dta", replace 
-		*/										
+												
 		
 		
 /*		**** University Scholarships

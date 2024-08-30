@@ -84,8 +84,10 @@ gen hh_elec_1 = I8 == 1 // Option 1: HH uses electricity
 gen hh_elec_2 = G7 == 1 // Option 2: HH principal source of electricity
 gen hh_elec_3 = depan > 0 // Option 3: Positive expenses on depan 
 
-if ($hh_coverage == 1) gen hh_elec = depan > 0 & I8 == 1
-if ($hh_coverage == 2) gen hh_elec = depan > 0 & G7 == 1 // Djibril Option
+gen hh_elec = depan > 0 & I8 == 1
+
+*if ($hh_coverage == 1) gen hh_elec = depan > 0 & I8 == 1
+*if ($hh_coverage == 2) gen hh_elec = depan > 0 & G7 == 1 // Djibril Option
 
 /*------------------------------------------------
 * Allocation of domestic and social users

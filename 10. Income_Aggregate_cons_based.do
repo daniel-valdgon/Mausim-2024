@@ -299,7 +299,7 @@ gen line_3=6.85*365*`ppp16'
 save "$data_out/output.dta", replace
 
 
-if "$scenario_name_save" == "Ref_2018" & $save_scenario ==1 {
+if "$scenario_name_save" == "v3_MRT_Ref" & $save_scenario ==1 {
 	save "$data_out/output_ref.dta", replace
 }
 
@@ -309,11 +309,6 @@ use "$data_out/output.dta" , clear
 
 
 rename poor poor_simu
-
-
-if ("$country" == "GMB") {
-	destring hhid, replace
-}
 
 merge 1:1 hhid using "$data_out/output_ref"  , keepusing(poor) nogen
 

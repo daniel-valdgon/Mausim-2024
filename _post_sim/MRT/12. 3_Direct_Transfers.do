@@ -32,25 +32,28 @@ macro drop _all
 if "`c(username)'"=="gabriellombomoreno" {
 	
 	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/Mausim_2024"
-	global report "${path}/04. Reports/3. Direct Transfers/2. Presentation/Figures"
+	global report 		"${path}/04. Reports/3. Direct Transfers/2. Presentation/Figures"
 	
 	global thedo     	"${path}/02. Scripts"
 
 	global xls_out    	"${report}/Figures12_Direct_Transfers.xlsx"
 	global xls_sn    	"${path}/03. Tool/SN_Sim_tool_VI_`c(username)'.xlsx"
 	
-	global numscenarios	5
+	global numscenarios	7
 
-	global proj_1		"SumReport_MRT_Ref" 
-	global proj_2		"SumReport_MRT_NoTransf"  
-	global proj_3		"SumReport_MRT_UBI" 
-	global proj_4		"SumReport_MRT_PubSch" 
-	global proj_5		"SumReport_MRT_Tek" 
-	global proj_6		"" 
+	global proj_1		"v3_MRT_Ref" 
+	global proj_2		"v1_MRT_NoTrans"  
+	global proj_3		"v1_MRT_UBI" 
+	global proj_4		"v4_MRT_Tekavoul" 
+	global proj_5		"v4_MRT_School" 
+	global proj_6		"v4_MRT_Elmaouna" 
+	global proj_7		"v4_MRT_FoodT" 
 
 	global policy		"am_prog_1 am_prog_2 am_prog_3 am_prog_4"
 
 }
+
+
 
 * Daniel
 if "`c(username)'"=="wb419055" {
@@ -87,6 +90,7 @@ if "`c(username)'"=="wb419055" {
 *===============================================================================
 
 cap run "$theado//_ebin.ado"
+	
 	
 /*-------------------------------------------------------/
 	1. Validation
@@ -308,20 +312,23 @@ export excel "$xls_out", sheet(Fig_2) first(variable) sheetmodify
 
 	global variable 	"ymp" // Only one
 	global reference 	"zref" // Only one
+	global policy		"am_prog_1 am_prog_2 am_prog_3 am_prog_4 dirtransf_total"
 
-forvalues scenario = 1/$numscenarios {
+forvalues scenario = 1/1 { //$numscenarios {
 	
+	*local scenario 1
 	import excel "$xls_sn", sheet("all${proj_`scenario'}") firstrow clear 
 	
 	* Total values
 	local len : word count $policy
 	
 	sum value if measure == "fgt0" & variable == "${variable}_pc" & reference == "$reference"
-	global pov1 = r(mean)
-	*mat pov = J(1,`len', r(mean))'
+	global pov0 = r(mean)
+	 
+	sum value if measure == "fgt1" & variable == "${variable}_pc" & reference == "$reference"
+	global pov1 = r(mean) 
 	 
 	sum value if measure == "gini" & variable == "${variable}_pc"
-	*mat gini = J(1,`len', r(mean))'
 	global gini1 = r(mean)
 	
 	* Variables of interest
@@ -334,7 +341,7 @@ forvalues scenario = 1/$numscenarios {
 	
 	keep if keep == 1
 	
-	keep if inlist(measure, "fgt0", "gini") 
+	keep if inlist(measure, "fgt0", "fgt1", "gini") 
 	keep if inlist(reference, "$reference", "") 
 	
 	* Order the results
@@ -350,9 +357,11 @@ forvalues scenario = 1/$numscenarios {
 	
 	reshape wide value, i(o_variable) j(measure, string)
 	
-	gen gl_pov = $pov1
+	gen gl_pov0 = $pov0
 	gen gl_gini = $gini1
+	gen gl_pov1 = $pov1
 
+	
 	tempfile mc
 	save `mc', replace
 
@@ -383,18 +392,18 @@ forvalues scenario = 1/$numscenarios {
 	merge 1:1 o_variable using `mc', nogen
 	
 	gen scenario = `scenario'
-	order scenario o_variable valuefgt0 valuegini gl_pov gl_gini value_k ${variable}_pc
+	order scenario o_variable gl_pov0 valuefgt0 gl_pov1 valuefgt1 gl_gini valuegini value_k ${variable}_pc  gl_pov1
 	
 	tempfile pov_`scenario'
 	save `pov_`scenario'', replace
 }	
 
 clear
-forvalues scenario = 1/$numscenarios {
+forvalues scenario = 1/1 { //$numscenarios {
 	append using `pov_`scenario''
 }
 
-export excel "$xls_out", sheet(Fig_3) first(variable) sheetmodify 
+export excel "$xls_out", sheet(Fig_3_1) first(variable) sheetmodify 
 
 
 /*-------------------------------------------------------/
@@ -403,7 +412,9 @@ export excel "$xls_out", sheet(Fig_3) first(variable) sheetmodify
 
 	global variable 	"yd" // Only one
 	global reference 	"zref" // Only one
+	global policy		"am_prog_1 am_prog_2 am_prog_3 am_prog_4"
 
+	
 forvalues scenario = 1/$numscenarios {
 	
 	import excel "$xls_sn", sheet("all${proj_`scenario'}") firstrow clear 
@@ -412,16 +423,21 @@ forvalues scenario = 1/$numscenarios {
 	local len : word count $policy
 	
 	sum value if measure == "fgt0" & variable == "${variable}_pc" & reference == "$reference"
+	global pov0 = r(mean)
+
+	sum value if measure == "fgt1" & variable == "${variable}_pc" & reference == "$reference"
 	global pov1 = r(mean)
-	 
+	
 	sum value if measure == "gini" & variable == "${variable}_pc"
 	global gini1 = r(mean)
+	
 	
 	clear
 	set obs 1 
 	
-	gen gl_pov = $pov1
+	gen gl_pov0 = $pov0
 	gen gl_gini = $gini1
+	gen gl_pov1 = $pov1
 	
 	gen scenario = `scenario'
 	order scenario, first

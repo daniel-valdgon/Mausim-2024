@@ -1,19 +1,18 @@
-
-*--------------------------------------------------------------------------------
-*--------------------------------------------------------------------------------
-* Program: Program for the Impact of Fiscal Reforms
-* Author: Julieth Pico 
-				
- * Date: August 2019
-* Version: 2.0 Daniel Valderrama 
-	*- Reduce the reading of direct taxes from 40 sect to 2 secs by loading only one sheet
-	*- Added a cap in the amount of childs from which a househodl can receive tax credits
+/*==============================================================================
+	Project:		CEQ Mauritania
+	To do:			Read Parameters
+	Author:			Gabriel Lombo
+	Creation Date:	Aug 27, 2024
+	Modified:		
 	
-*--------------------------------------------------------------------------------
+	Note: 				
+===============================================================================*/
 
-	*==================================================================================
-	dis "=================  Settings 	==============="
-	*==================================================================================
+
+/*-------------------------------------------------------/
+	0. Settings
+/-------------------------------------------------------*/
+
 
 	import excel "$xls_sn", sheet(settingshide) first clear
 
@@ -25,17 +24,97 @@
 		
 	destring value , force replace
 	mkmat value ,  mat(settings)
-
-	if ("`c(username)'"=="gabriellombomoreno") global scenario_name_save = "${scenario_name_save2}"
 	
 	noi di "$scenario_name_save"
 	
 	
+/*-------------------------------------------------------/
+	2. Direct Taxes
+/-------------------------------------------------------*/
 	
-	*==================================================================================
-	dis "=================  Indirect Taxes 	==============="
-	*==================================================================================
+	import excel "$xls_sn", sheet(DirTax_raw) first clear
 	
+	levelsof Autresname, local(params)
+	foreach z of local params {
+		levelsof Autresvalue  if Autresname=="`z'", local(val)
+		global `z' `val'
+	}
+			
+	drop if rate=="."
+				
+	*gen namevar = Threshold+"_"+Type
+	tempfile dt
+	save `dt', replace 
+
+	gen Type = name + "_" + regime
+	
+	levelsof concat, local(types)
+	*global typesDirTax "`types'"
+	
+	foreach t of local types {
+		levelsof threshold if Type=="`t'", local(tholds)
+		global tholdsDirTax`t' "`tholds'"
+		foreach z of local tholds {
+			levelsof Max  if Threshold=="`z'" & Type=="`t'", local(Max`z')
+			global Max`z'_`t' `Max`z''
+			levelsof Subvention  if Threshold=="`z'" & Type=="`t'", local(Subvention`z') 
+			global Subvention`z'_`t' `Subvention`z''
+			levelsof Tariff  if Threshold=="`z'" & Type=="`t'", local(Tariff`z') 
+			global Tariff`z'_`t' `Tariff`z''
+		}
+	}	
+	
+/*-------------------------------------------------------/
+	3. Direct Transfers
+/-------------------------------------------------------*/
+
+	import excel "$xls_sn", sheet(Aux_direct_transfers_raw) first clear
+		
+	split cat, p("_")
+	*destring cat2, replace
+		
+	levelsof cat2, local (programs)
+	foreach p of local programs {						
+				
+		levelsof prog_label if cat2=="`p'", local(tholds_`p')
+		global pr_label_`p' `tholds_`p''	
+		
+		levelsof division if cat2=="`p'", local(tholds_`p')
+		global pr_div_`p' `tholds_`p''
+			
+		levelsof type if cat2=="`p'", local(tholds_`p')
+		global pr_type_`p' `tholds_`p''
+	}
+		
+	destring cat2, replace
+	sum cat2  
+	global n_progs "`r(max)'"
+		
+	forvalues i = 1/ $n_progs {
+		
+		if "${pr_div_`i'}" == "departement"  | "${pr_div_`i'}" == "region"  {
+			*local i = 1
+			import excel "$xls_sn", sheet(prog_`i'_raw) first clear
+			drop if location ==.		
+			
+			destring beneficiaires, replace	
+			destring montant, replace		
+
+			ren location ${pr_div_`i'}
+			
+			keep ${pr_div_`i'} beneficiaires montant
+			
+			*save `department'
+			save "$tempsim/${pr_div_`i'}_`i'.dta", replace 
+		}
+	}	
+					
+	
+/*-------------------------------------------------------/
+	4. Indirect Taxes
+/-------------------------------------------------------*/
+	
+	*---------- VAT
 	import excel "$xls_sn", sheet("IO_percentage") firstrow clear
 	save "$presim/IO_percentage.dta", replace
 
@@ -47,9 +126,6 @@
 		global `z' `val'
 	}
 	
-	/*if ("$country" == "SEN") {
-		global sect_fixed "22 32 33 34 13"
-	}*/
 	if ("$country" == "GMB") {
 		global sect_fixed ""
 	}
@@ -76,10 +152,7 @@
 		}
 	}
 
-	*==================================================================================
-	dis "==============              Excises Taxes         					==========="
-	*==================================================================================
-	
+	*----------- Excises
 		
 	import excel "$xls_sn", sheet(Excises_raw) first clear
 		
@@ -104,276 +177,52 @@
 	sum cat2 if cat1 == "ex"
 	global n_excises_taux "`r(max)'"
 	
+	
+	
 
 	
-	        *==================================================================================
-		dis "==============            Subvention Electricité  					==========="
-		*==================================================================================
+/*-------------------------------------------------------/
+	5. Subsidies
+/-------------------------------------------------------*/
 
+	*--------- Electricity
 
-		import excel "$xls_sn", sheet(Subvention_electricite_raw) first clear
-		
-		levelsof Autresname, local(params)
-		foreach z of local params {
-			levelsof Autresvalue  if Autresname=="`z'", local(val)
-			global `z' `val'
-		}
-		
-		drop if Tariff=="."
-		
-		*gen namevar = Threshold+"_"+Type
-		tempfile electricite_raw_dta
-		save `electricite_raw_dta', replace 
-
-		levelsof Type, local(types)
-		global typesElec "`types'"
-		foreach t of local types {
-			levelsof Threshold if Type=="`t'", local(tholds)
-			global tholdsElec`t' "`tholds'"
-			foreach z of local tholds {
-				levelsof Max  if Threshold=="`z'" & Type=="`t'", local(Max`z')
-				global Max`z'_`t' `Max`z''
-				levelsof Subvention  if Threshold=="`z'" & Type=="`t'", local(Subvention`z') 
-				global Subvention`z'_`t' `Subvention`z''
-				levelsof Tariff  if Threshold=="`z'" & Type=="`t'", local(Tariff`z') 
-				global Tariff`z'_`t' `Tariff`z''
-			}
-		}
-		
-		
-	
-        *==================================================================================
-	dis "==============                Direct Transfers     				==========="
-	*==================================================================================
-
-*	qui {
-
-		import excel "$xls_sn", sheet(Aux_direct_transfers_raw) first clear
-
-		levelsof cat, local (programs)
-		foreach p of local programs {
-							
-			levelsof prog_index if cat=="`p'", local(tholds_`p')
-			global index_`p' `tholds_`p''
+	import excel "$xls_sn", sheet(Subvention_electricite_raw) first clear
 			
-			levelsof prog_label if cat=="`p'", local(tholds_`p')
-			global label_`p' `tholds_`p''		
-		}		
-		
-		sum prog_index
-		global n_progs "`r(max)'"
-
-
-forvalues i = 1/3 {
-
-		import excel "$xls_sn", sheet(PNBSF`i'_raw) first clear
-		drop if departement ==.		
-		tempfile department
-		
-		destring Beneficiaires, replace	
-		destring Montant, replace		
-
-		keep departement Beneficiaires Montant
-		
-		save `department'
-		save "$tempsim/departments`i'.dta", replace 
-		
-}	
-			
-		**** School Cantines
-
-		import excel "$xls_sn", sheet(Cantine_scolaire_raw) first clear
-		drop if Region ==.
-		ren Region region
-		
-		destring nombre_elevees, replace	
-		destring montant_cantine, replace
-		
-		keep region	nombre_elevees montant_cantine
-		
-		tempfile cantine
-		save `cantine'
-		save "$tempsim/cantine.dta", replace 
-												
-		
-		
-/*		**** University Scholarships
-		
-		import excel "$xls_sn", sheet(Bourse universitaire_raw) first clear
-
-		levelsof Type, local(type) clean
-		global TypeBourseUniv `type'
-		foreach z of local type {
-			levelsof Beneficiaires if Type=="`z'", local(Bourse_Beneficiaire`z')
-			global Bourse_Beneficiaire`z' `Bourse_Beneficiaire`z''
-			levelsof montant if Type=="`z'", local(Bourse_montant`z')
-			global Bourse_montant`z' `Bourse_montant`z''
-		}
-	}
-*/
-	
-/*		*==================================================================================
-		dis "==============            Subvention Eau         					==========="
-		*==================================================================================
-
-		
-
-		import excel "$xls_sn", sheet(Subvention_eau_raw) first clear
-		
-		levelsof Autresname, local(params)
-		foreach z of local params {
-			levelsof Autresvalue  if Autresname=="`z'", local(val)
-			global `z' `val'
-		}
-		
-		drop if Tariff=="."
-		
-		*gen namevar = Threshold+"_"+Type
-		tempfile eau_raw_dta
-		save `eau_raw_dta', replace 
-
-		levelsof Type, local(types)
-		global typesEau "`types'"
-		foreach t of local types {
-			levelsof Threshold if Type=="`t'", local(tholds)
-			global typesEau`t' "`tholds'"
-			foreach z of local tholds {
-				levelsof Max  if Threshold=="`z'" & Type=="`t'", local(Max`z')
-				global Max`z'_`t' `Max`z''
-				levelsof Subvention  if Threshold=="`z'" & Type=="`t'", local(Subvention`z') 
-				global Subvention`z'_`t' `Subvention`z''
-				levelsof Tariff  if Threshold=="`z'" & Type=="`t'", local(Tariff`z') 
-				global Tariff`z'_`t' `Tariff`z''
-			}
-		}
-	
-			
-		
-*/	
-	
-	
-/*	
-	
-import excel "$xls_sn", sheet(settingshide) first clear
-
-levelsof cat, local(params)
-foreach z of local params {
-	levelsof value  if cat=="`z'", local(val)
-	global `z' `val'
-}
-
-destring value , force replace
-mkmat value ,  mat(settings)
-
-
-if $load_scenario ==1{
-	import excel "$xls_sn", sheet("p_${scenario_name_load}") first clear
-	levelsof globalname, local(globales)
-	foreach z of local globales {
-		levelsof globalcontent if globalname=="`z'", local(val)
+	levelsof Autresname, local(params)
+	foreach z of local params {
+		levelsof Autresvalue  if Autresname=="`z'", local(val)
 		global `z' `val'
 	}
-	
-	if "${scenario_name_save}"=="Ref_2018"{
-		global asserts_ref2018 = 1
-	}
-	noi dis "{opt All the parameters of scenario ${scenario_name_load} have been loaded.}"
-}
-else {
-	noi dis "{opt Loading the parameters from the tool. This may take some seconds...}"
-	if "${scenario_name_save}"=="Ref_2018"{
-		global asserts_ref2018 = 1
-}
-	
-	*==================================================================================
-	dis "=================  Indirect Taxes 	==============="
-	*==================================================================================
-	  
-	import excel "$xls_sn", sheet("IO_percentage_mrt") firstrow clear
-	save "$presim\IO_percentage.dta", replace
+			
+	drop if Tariff=="."
+			
+	*gen namevar = Threshold+"_"+Type
+	tempfile electricite_raw_dta
+	save `electricite_raw_dta', replace 
 
-	
-	import excel "$xls_sn", sheet("TVA_aux_params_mrt") firstrow clear
-	levelsof globalname, local(globales)
-	foreach z of local globales {
-		levelsof globalcontent if globalname=="`z'", local(val)
-		global `z' `val'
-	}
-	
-	
-	if $TVA_simplified == 0{
-		import excel "$xls_sn", sheet("TVA_raw_mrt") firstrow clear
-		drop produit
-		drop if codpr==.
-		recode elasticities (.=0)
-		tempfile VAT_original
-		save `VAT_original'
-		levelsof codpr, local(products)
-		global products "`products'"
-		foreach z of local products {
-			*dis `z'
-			levelsof TVA          if codpr==`z', local(vatrate)
-			global vatrate_`z' `vatrate'
-			levelsof formelle     if codpr==`z', local(vatform)
-			global vatform_`z' `vatform'
-			levelsof exempted     if codpr==`z', local(vatexem)
-			global vatexem_`z' `vatexem'
-			levelsof elasticities if codpr==`z', local(vatelas)
-			global vatelas_`z' `vatelas'
+	levelsof Type, local(types)
+	global typesElec "`types'"
+	foreach t of local types {
+		levelsof Threshold if Type=="`t'", local(tholds)
+		global tholdsElec`t' "`tholds'"
+		foreach z of local tholds {
+			levelsof Max  if Threshold=="`z'" & Type=="`t'", local(Max`z')
+			global Max`z'_`t' `Max`z''
+			levelsof Subvention  if Threshold=="`z'" & Type=="`t'", local(Subvention`z') 
+			global Subvention`z'_`t' `Subvention`z''
+			levelsof Tariff  if Threshold=="`z'" & Type=="`t'", local(Tariff`z') 
+			global Tariff`z'_`t' `Tariff`z''
 		}
 	}
+		
+	*--------- Fuels
 	
-	if $TVA_simplified == 1{
-		import excel "$xls_sn", sheet("TVA_ref_raw_mrt") firstrow clear
-		drop produit
-		drop if codpr==.
-		recode elasticities (.=0)
-		
-		replace TVA      = $tva_TOUS    if $overwrite_TOUS == 1
-		replace exempted = $exempt_TOUS if $overwrite_TOUS == 1
-		
-		if $overwrite_TOUS == 0 {
-			replace TVA      = $tva_otherfood    if $overwrite_otherfood == 1 & inlist(codpr,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139,140,151,152)
-			replace exempted = $exempt_otherfood if $overwrite_otherfood == 1 & inlist(codpr,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139,140,151,152)
-			
-			replace TVA      = $tva_meat    if $overwrite_meat == 1 & inlist(codpr,23,24,25,26,27,28,29,30,31,32,33,34)
-			replace exempted = $exempt_meat if $overwrite_meat == 1 & inlist(codpr,23,24,25,26,27,28,29,30,31,32,33,34)
-			
-			replace TVA      = $tva_educ    if $overwrite_educ == 1 & inlist(codpr,642,643,661,663,664,666,667,669,670,672)
-			replace exempted = $exempt_educ if $overwrite_educ == 1 & inlist(codpr,642,643,661,663,664,666,667,669,670,672)
-			
-			replace TVA      = $tva_gas    if $overwrite_gas == 1 & inlist(codpr,303)
-			replace exempted = $exempt_gas if $overwrite_gas == 1 & inlist(codpr,303)
-			
-			replace TVA      = $tva_journals    if $overwrite_journals == 1 & inlist(codpr,216,315)
-			replace exempted = $exempt_journals if $overwrite_journals == 1 & inlist(codpr,216,315)
-			
-			replace TVA      = $tva_housing    if $overwrite_housing == 1 & inlist(codpr,331)
-			replace exempted = $exempt_housing if $overwrite_housing == 1 & inlist(codpr,331)
-			
-			replace TVA      = $tva_health    if $overwrite_health == 1 & inlist(codpr,681,682,683,684,685,686,691,692)
-			replace exempted = $exempt_health if $overwrite_health == 1 & inlist(codpr,681,682,683,684,685,686,691,692)
-			
-			replace TVA      = $tva_transp    if $overwrite_transp == 1 & inlist(codpr,210,211,212,213,214,215,405,406,407,629,630,631)
-			replace exempted = $exempt_transp if $overwrite_transp == 1 & inlist(codpr,210,211,212,213,214,215,405,406,407,629,630,631)
-		}
-		
-		tempfile VAT_original
-		save `VAT_original'
-		levelsof codpr, local(products)
-		global products "`products'"
-		foreach z of local products {
-			*dis `z'
-			levelsof TVA          if codpr==`z', local(vatrate)
-			global vatrate_`z' `vatrate'
-			levelsof formelle     if codpr==`z', local(vatform)
-			global vatform_`z' `vatform'
-			levelsof exempted     if codpr==`z', local(vatexem)
-			global vatexem_`z' `vatexem'
-			levelsof elasticities if codpr==`z', local(vatelas)
-			global vatelas_`z' `vatelas'
-		}
-	}
+	*--------- Water
+
+
+
+/*
 
 	*==================================================================================
 	dis "=================   Direct Taxes 	==============="
@@ -549,75 +398,11 @@ else {
 
 
 
-	*==================================================================================
-	dis "==============              Excises Taxes         					==========="
-	*==================================================================================
-		
-		
-	qui {
-
-		import excel "$xls_sn", sheet(Excises_raw) first clear
-		
-		replace Produit=lower(Produit)
-		levelsof Produit, local (products)
-		
-		foreach p of local products {
-								
-			levelsof Taux if Produit=="`p'", local(tholds_`p')
-			global taux_`p' `tholds_`p''
-		}							  
-	}
-
 
 	*==================================================================================
 	dis "==============                Direct Transfers     				==========="
 	*==================================================================================
 
-	qui {
-
-		**** Programme National de Bourses de Sécurité Familiale 
-
-		import excel "$xls_sn", sheet(PNBSF_raw) first clear
-								  
-									 
-
-		levelsof departement, local(departement)
-		global departementPNBSF `departement'
-		foreach z of local departement {
-			levelsof Beneficiaires if departement==`z', local(PNBSF_Beneficiaires`z')
-			global PNBSF_Beneficiaires`z' `PNBSF_Beneficiaires`z''
-			levelsof Montant if departement==`z', local(PNBSF_montant`z')
-			global PNBSF_montant`z' `PNBSF_montant`z''
-		}
-
-		**** Cantine Scolaire
-
-		import excel "$xls_sn", sheet(Cantine_scolaire_raw) first clear
-												
-																				   
-
-		levelsof Region, local(region)
-		global regionCantine `region'
-		foreach z of local region {
-			levelsof nombre_elevees if Region==`z', local(Cantine_Elevee`z')
-			global Cantine_Elevee`z' `Cantine_Elevee`z''
-			levelsof montant_cantine if Region==`z', local(Cantine_montant`z')
-			global Cantine_montant`z' `Cantine_montant`z''
-		}		   
-																				   
-
-		**** Bourse Universitaire
-		
-		import excel "$xls_sn", sheet(Bourse universitaire_raw) first clear
-
-		levelsof Type, local(type) clean
-		global TypeBourseUniv `type'
-		foreach z of local type {
-			levelsof Beneficiaires if Type=="`z'", local(Bourse_Beneficiaire`z')
-			global Bourse_Beneficiaire`z' `Bourse_Beneficiaire`z''
-			levelsof montant if Type=="`z'", local(Bourse_montant`z')
-			global Bourse_montant`z' `Bourse_montant`z''
-		}
 
 		****  CMU & Health
 		
@@ -656,109 +441,6 @@ else {
 		}
 		restore
 
-		
-		
-
-		*==================================================================================
-		dis "==============            Subvention Electricité  					==========="
-		*==================================================================================
-
-		
-
-		import excel "$xls_sn", sheet(Subvention_electricite_raw) first clear
-		
-		levelsof Autresname, local(params)
-		foreach z of local params {
-			levelsof Autresvalue  if Autresname=="`z'", local(val)
-			global `z' `val'
-		}
-		
-		drop if Tariff=="."
-		
-		*gen namevar = Threshold+"_"+Type
-		tempfile electricite_raw_dta
-		save `electricite_raw_dta', replace 
-
-		levelsof Type, local(types)
-		global typesElec "`types'"
-		foreach t of local types {
-			levelsof Threshold if Type=="`t'", local(tholds)
-			global tholdsElec`t' "`tholds'"
-			foreach z of local tholds {
-				levelsof Max  if Threshold=="`z'" & Type=="`t'", local(Max`z')
-				global Max`z'_`t' `Max`z''
-				levelsof Subvention  if Threshold=="`z'" & Type=="`t'", local(Subvention`z') 
-				global Subvention`z'_`t' `Subvention`z''
-				levelsof Tariff  if Threshold=="`z'" & Type=="`t'", local(Tariff`z') 
-				global Tariff`z'_`t' `Tariff`z''
-			}
-		}
-	
-	
-	
-		*==================================================================================
-		dis "==============            Subvention Eau         					==========="
-		*==================================================================================
-
-		
-
-		import excel "$xls_sn", sheet(Subvention_eau_raw) first clear
-		
-		levelsof Autresname, local(params)
-		foreach z of local params {
-			levelsof Autresvalue  if Autresname=="`z'", local(val)
-			global `z' `val'
-		}
-		
-		drop if Tariff=="."
-		
-		*gen namevar = Threshold+"_"+Type
-		tempfile eau_raw_dta
-		save `eau_raw_dta', replace 
-
-		levelsof Type, local(types)
-		global typesEau "`types'"
-		foreach t of local types {
-			levelsof Threshold if Type=="`t'", local(tholds)
-			global typesEau`t' "`tholds'"
-			foreach z of local tholds {
-				levelsof Max  if Threshold=="`z'" & Type=="`t'", local(Max`z')
-				global Max`z'_`t' `Max`z''
-				levelsof Subvention  if Threshold=="`z'" & Type=="`t'", local(Subvention`z') 
-				global Subvention`z'_`t' `Subvention`z''
-				levelsof Tariff  if Threshold=="`z'" & Type=="`t'", local(Tariff`z') 
-				global Tariff`z'_`t' `Tariff`z''
-			}
-		}
-	}
-	
-
-	*==================================================================================
-	dis "==============            Subvention Carburants  					==========="
-	*==================================================================================
-
-		
-
-		import excel "$xls_sn", sheet(Subvention_fuel_raw) first clear
-		levelsof fuels, local(fuels)
-		global typesFuels "`fuels'"
-		foreach z of local fuels {
-			levelsof market_price  if fuels=="`z'" , local(Mp`z')
-			global mp_`z' `Mp`z''
-			levelsof subsidized_price  if fuels=="`z'" , local(sub`z')
-			global sp_`z' `sub`z''
-			levelsof subsidy_perc  if fuels=="`z'" , local(sr`z')
-			global sr_`z' `sr`z''
-			levelsof initial_price  if fuels=="`z'" , local(ip`z')
-			global ip_`z' `ip`z''
-			levelsof pond_men_  if fuels=="`z'" , local(pmen`z')
-			global pond_men_`z' `pmen`z''
-			levelsof pond_ent_  if fuels=="`z'" , local(pent`z')
-			global pond_ent_`z' `pent`z''
-		}
-
-		
-}
 */
 
 if $save_scenario ==1{
