@@ -3,13 +3,15 @@
 
 	Project:		Direct Taxes - Figures Scenarios
 	Author:			Gabriel 
-	Creation Date:	Aug 29, 2024
+	Creation Date:	Sep 3, 2024
 	Modified:		
 	
-	Section: 		1. Validation
-					4. Absolute and Relative Incidence
-					5. Marginal Contributions
-					6. Poverty difference
+	Section: 		1. Names
+					2. Relative Incidence
+					3. Absolute Incidence
+					4. Marginal Contributions
+					5. Poverty and Inequality - Compare Scenarios
+					6. Map
 					
 	Note:
 				
@@ -23,21 +25,18 @@ macro drop _all
 if "`c(username)'"=="gabriellombomoreno" {
 	
 	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/Mausim_2024"
-	global report 		"${path}/04. Reports/2. Direct Taxes/2. Presentation/Figures"
-	
+	global report 		"${path}/04. Reports/2. Direct Taxes/2. Presentation/Figures"	
 	global thedo     	"${path}/02. Scripts"
 
-	global xls_out    	"${report}/Figure12_Direct_Taxes.xlsx"
+	global xls_out		"${report}/Figure12_Direct_Taxes.xlsx"
 	global xls_sn    	"${path}/03. Tool/SN_Sim_tool_VI_`c(username)'.xlsx"
 	
 	global numscenarios	1
 
-	global proj_1		"v3_MRT_Ref" 
-	global proj_2		""  
+	global proj_1		"Test_dt_sim2" 
+	global proj_2		""
 
-	global policy		"income_tax income_tax_reduc trimf dirtax_total"
-	global policy3		"income_tax_pc income_tax_reduc_pc trimf_pc dirtax_total_pc"
-
+	global policy		"dirtax_total income_tax_1 income_tax_2 income_tax_3"
 }
 
 	global data_sn 		"${path}/01. Data/1_raw/MRT"    
@@ -51,16 +50,49 @@ if "`c(username)'"=="gabriellombomoreno" {
 // Run necessary ado files
 *===============================================================================
 
-cap run "$theado//_ebin.ado"
-	
+*cap run "$theado//_ebin.ado"	
+
+
 /*-------------------------------------------------------/
-	1. Validation
+	0. Validation and Assumptions
 /-------------------------------------------------------*/
 
-
+use "$data_sn/Datain/individus_2019.dta", clear
+		
+ren hid hhid
 	
+merge m:1 hhid using "$presim/01_menages.dta", nogen keep(3) keepusing(hhweight hhsize)
+merge 1:1 idind using "$presim/02_Income_tax_input.dta", nogen
+
+
+*-------- Wages and Salaries
+gen worker = inrange(E11, 1, 9)
+
+gen pos = E20A2>0 & E20A2!=. 
+
+tabm worker E18B pos  [iw = hhweight], m
+
+tab E11 [iw = hhweight], m
+
+
+*-------- Property tax
+
+keep hhid hhweight wilaya G0 F1 G12B G10
+
+gduplicates drop 
+
+tab G0 F1 [iw = hhweight]
+
+tabstat G12B G10 [aw = hhweight] if inlist(G0, 1, 3), s(mean p50 count) by(F1)
+
+tabstat G12B G10 [aw = hhweight] if inlist(G0, 1, 3) & F1 == 3, s(mean p50 count) by(wilaya)
+
+
+
+gbd
+
 /*-------------------------------------------------------/
-	0. Names
+	1. Names
 /-------------------------------------------------------*/
 
 *----- Scenarios
@@ -83,30 +115,10 @@ forvalues scenario = 1/$numscenarios {
 
 export excel "$xls_out", sheet(Scenarios) first(variable) sheetreplace cell(A1)
 
-/*-------------------------------------------------------/
-	1. Map
-/-------------------------------------------------------*/
-/*
-*------ Coordinates
-shp2dta using "$data_sn/Shapes/mrt_admbnda_adm1_ansade_20240327.shp", database("$data_sn/mrtdb") coordinates("$data_sn/mrtcoord") genid(id) replace
 
-*------ Indicators
-
-tempfile map 
-save `map', replace 
-
-*------ Map
-use "$data_sn/mrtdb", clear
-
-gen name = substr(ADM1_PCODE, 3, 4) // Admin 1
-
-merge m:1 name using `map', gen(mr_coor) 
-
-spmap hh_prog using "$data_sn/mrtcoord", id(id) fcolor(Blues) legend(region(lcolor(black) margin(1 1 1 1) fcolor(white)) pos(10) title("Number of households", size(*0.5) )) 
-*/
 
 /*-------------------------------------------------------/
-	2. Relative Incidence
+	2 Relative Incidence
 /-------------------------------------------------------*/
 
 	global income 	"ymp" // yd, ymp
@@ -146,6 +158,7 @@ forvalues scenario = 1/$numscenarios {
 	
 	tempfile inc_`scenario'
 	save `inc_`scenario'', replace
+
 }
 
 
@@ -156,9 +169,8 @@ forvalues scenario = 1/$numscenarios {
 
 export excel "$xls_out", sheet(Incidence) first(variable) sheetmodify cell(A1)
 
-
 /*-------------------------------------------------------/
-	2. Absolute Incidence
+	3. Absolute Incidence
 /-------------------------------------------------------*/
 
 	global income 	"ymp" // yd, ymp
@@ -215,7 +227,7 @@ export excel "$xls_out", sheet(Incidence) first(variable) sheetmodify cell(S1)
 	
 	
 /*-------------------------------------------------------/
-	3. Marginal Contributions
+	4. Marginal Contributions
 /-------------------------------------------------------*/
 
 	global variable 	"ymp" // Only one
@@ -223,7 +235,6 @@ export excel "$xls_out", sheet(Incidence) first(variable) sheetmodify cell(S1)
 
 forvalues scenario = 1/$numscenarios {
 	
-	local scenario 1
 	import excel "$xls_sn", sheet("all${proj_`scenario'}") firstrow clear 
 	
 	* Total values
@@ -275,14 +286,14 @@ forvalues scenario = 1/$numscenarios {
 *-----  Kakwani	
 	import excel "$xls_sn", sheet("conc${variable}_${proj_`scenario'}") firstrow clear 
 	
-	keep ${variable}_centile_pc ${variable}_pc $policy3
+	keep ${variable}_centile_pc ${variable}_pc $policy
 	keep if ${variable}_centile_pc == 999
 	
 	ren * var_*
-	ren var_${variable}_centile_pc varinc_centile_pc
-	ren var_${variable}_pc varinc_pc
+	ren var_${variable}_centile_pc income_centile_pc
+	ren var_${variable}_pc income_pc
 	
-	reshape long var_, i(varinc_centile_pc) j(variable, string)
+	reshape long var_, i(income_centile_pc) j(variable, string)
 	ren var_ value_
 	
 	* Order the results
@@ -293,7 +304,7 @@ forvalues scenario = 1/$numscenarios {
 		replace o_variable = "`i'_`v'"  if variable == "`v'_pc"
 	}
 
-	keep o_variable varinc_pc value_
+	keep o_variable income_pc value_
 	ren value value_k
 
 	merge 1:1 o_variable using `mc', nogen
@@ -325,10 +336,10 @@ export excel "$xls_out", sheet(Marginal) first(variable) sheetreplace
 
 
 /*-------------------------------------------------------/
-	7. Poverty and Inequality - Compare Scenarios
+	5. Poverty and Inequality - Compare Scenarios
 /-------------------------------------------------------*/
 
-	global variable 	"yd" // Only one
+	global variable 	"yc" // Only one
 	global reference 	"zref" // Only one
 	
 forvalues scenario = 1/$numscenarios {
@@ -368,7 +379,80 @@ forvalues scenario = 1/$numscenarios {
 	append using `pov_`scenario''
 }
 
-export excel "$xls_out", sheet(Poverty) first(variable) sheetreplace 
+export excel "$xls_out", sheet(Poverty) first(variable) sheetmodify 
+
+/*-------------------------------------------------------/
+	6. Coverage
+/-------------------------------------------------------*/
+
+	global variable 	"ymp" // yd... Only one
+	
+forvalues scenario = 1/$numscenarios {
+	
+	local scenario = 1
+	import excel "$xls_sn", sheet("all${proj_`scenario'}") firstrow clear 
+	
+	keep if measure=="coverage" 
+	gen keep = 0
+
+	global policy2 	""
+	foreach var in $policy {
+		replace keep = 1 if variable == "`var'_pc"
+		global policy2	"$policy2 v_`var'_pc_${income}" 
+	}	
+	keep if keep ==1 
+	
+	replace variable=variable+"_ymp" if deciles_pc!=.
+	replace variable=variable+"_yd" if deciles_pc==.
+
+	egen decile=rowtotal(yd_deciles_pc deciles_pc)
+
+	keep decile variable value
+	
+	rename value v_
+
+	reshape wide v_, i(decile) j(variable) string
+	drop if decile ==0
+	
+	keep decile *_${income}
+	gen scenario = `scenario'
+	order scenario decile $policy2
+	ren (*) (scenario decile $policy)
+	
+	tempfile cov_`scenario'
+	save `cov_`scenario'', replace
+	
+}	
+
+clear
+forvalues scenario = 1/$numscenarios {
+	append using `cov_`scenario''
+}
+
+export excel "$xls_out", sheet(Coverage) first(variable) sheetmodify 
+
+
+/*------------------------------------------------------/
+	10. Map
+/-------------------------------------------------------*/
+/*
+*------ Coordinates
+shp2dta using "$data_sn/Shapes/mrt_admbnda_adm1_ansade_20240327.shp", database("$data_sn/mrtdb") coordinates("$data_sn/mrtcoord") genid(id) replace
+
+*------ Indicators
+
+tempfile map 
+save `map', replace 
+
+*------ Map
+use "$data_sn/mrtdb", clear
+
+gen name = substr(ADM1_PCODE, 3, 4) // Admin 1
+
+merge m:1 name using `map', gen(mr_coor) 
+
+spmap hh_prog using "$data_sn/mrtcoord", id(id) fcolor(Blues) legend(region(lcolor(black) margin(1 1 1 1) fcolor(white)) pos(10) title("Number of households", size(*0.5) )) 
+*/
 
 
 scalar t2 = c(current_time)

@@ -37,7 +37,7 @@ if "`c(username)'"=="gabriellombomoreno" {
 	global tool         "${path}/03. Tool" 
 	
 	global country 		"MRT"
-	global run_presim 	0
+	global run_presim 	1		// 1 = run presim
 
 	{
 	*global xls_sn 		"${path}/03_Tool/policy_inputs/${country}/SN_Sim_tool_VI_${country}_ref.xlsx"
@@ -122,7 +122,6 @@ foreach f of local files{
 	 qui: cap run "$theado//`f'"
 }
 
-dbbd
 
 *===============================================================================
 // Run pre_simulation files (Only run once)

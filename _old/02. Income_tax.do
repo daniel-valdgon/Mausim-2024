@@ -9,22 +9,6 @@
 	
 ==============================================================================*/
 
-/*
-	Output: 02_Income_tax_input.dta
-
-	Income
-	Exemptions
-	Allowances
-	Tax Base
-	Rate
-	Tranches or regime
-*/
-	
-/*-------------------------------------------------------/
-	0. Prep Data
-/-------------------------------------------------------*/
-
-	
 	
 use "$data_sn/Datain/individus_2019.dta", clear
 		
@@ -32,30 +16,31 @@ ren hid hhid
 	
 merge m:1 hhid using "$presim/01_menages.dta", nogen keep(3) keepusing(hhweight hhsize)
 
-keep hhid hhweight wilaya milieu B2 B4 E* F* G0
-
 gen uno = 1
+
+keep hhid hhweight wilaya milieu B2 B4 E* F* G0
 
 sum E10 E20A2 E20A1 E19 E15
 
-/*-------------------------------------------------------/
-	0. Impute Income
-/-------------------------------------------------------*/
+** Tax income
+* Income Imputation
 
-tab E20B E20A1 [iw = hhweight], m // Individuals who didnt want to report the money received
+tab E20A1 [iw = hhweight] // Individuals who didnt want to report the money received
 
 gen pos = E20A2>0 & E20A2!=. 
+tab pos [iw = hhweight] if E18B == 1 // 23,815 to impute
 
 preserve 
 
 	tabstat E20A2 [aw = hhweight] if E18B == 1 & pos == 1, s(p50) by(E11)
+
 
 	keep if E18B == 1
 
 	gen tot = 1
 	gen n_imp = pos == 0
 
-	collapse (sum) tot pos n_imp (mean) inc_imp = E20A2, by(B2 E11)
+	collapse (sum) tot pos n_imp (p50) median_inc = E20A2, by(wilaya E11)
 
 	tempfile wages_impute
 	save `wages_impute', replace
@@ -63,60 +48,44 @@ preserve
 restore
 
 * Merge imputed wages
-merge m:1 B2 E11 using `wages_impute', gen(mr_imp) keep(1 3) keepusing(inc_imp)
+merge m:1 wilaya E11 using `wages_impute', gen(mr_imp) keep(1 3) keepusing(median_inc)
 
-mat aux_inc = (0, 60000, 80000, 100000, 130000, 250000, 450000, 700000, 700000)
+gen income_imp = median_inc if E18B == 1 & pos == 0
 
-gen inc_imp2 = inc_imp if inrange(E20B, 1, 8) | pos==1
+egen income = rowtotal(E20A2 income_imp)
 
-forvalues i = 1/8 {
-	replace inc_imp2 = aux_inc[1,`i'] if inc_imp < aux_inc[1,`i'] & E20B == `i'
-	replace inc_imp2 = aux_inc[1,`i'+1] if inc_imp > aux_inc[1,`i'+1] & E20B == `i'
-}
+tabstat E20A2 income income_imp [aw = hhweight] if E18B == 1, s(p50) by(wilaya)
 
-replace inc_imp2 = inc_imp if E20B == 0
-
-tabstat inc_imp2  [aw = hhweight], s(min max mean) by(E20B)
-
-egen income = rowtotal(E20A2 inc_imp2)
-
-*br E20A2 inc_imp* income E20B
 
 gen pos2 = income>0 & income!=. 
-tab pos2 pos [iw = hhweight] if E18B == 1 // 23,609 to impute
 
+tab pos2 pos [iw = hhweight] if E18B == 1 // 23,815 to impute
 
-/*-------------------------------------------------------/
-	1. Tax Income - ITS
-/-------------------------------------------------------*/
+* Principal activity
 
-gen tax_ind = E18B == 1 & pos == 1
-replace tax_ind = 0 if E19 == 7
+gen tax_ind_1 = E18B == 1 & pos == 1
+replace tax_ind_1 = 0 if E19 == 7
 
-gen an_income = income*12 if tax_ind == 1
+gen tax_base_1 = income*12 if tax_ind_1 == 1
   
+* Allowances
 gen allow1 = 60000
-gen allow2 = an_income * 0.20 if E19 == 6
- 
-egen allow = rowtotal(allow1 allow2)
-replace allow = (-1) * allow
+gen allow2 = tax_base_1 * 0.20 if E19 == 6
 
-drop allow1 allow2
+egen allowance = rowtotal(allow1 allow2)
+replace allowance = (-1) * allowance
 
-egen tax_base = rowtotal(an_income allow)
-replace tax_base = 0 if tax_base < 0
+egen tax_base = rowtotal(tax_base_1 allowance)
+replace tax_base = 0 if tax_base <0
 
-gen exemp_ind = 0
-replace exemp_ind = 1 if tax_base <= 60000
-replace exemp_ind = 1 if inlist(E8, 1, 2)
+* Exemptions
+gen exemptions = 0
+replace exemptions = 1 if tax_base <= 60000
+replace exemptions = 1 if inlist(E8, 1, 2)
 
-replace tax_ind = 0 if exemp_ind == 1 
- 
+replace tax_ind = 0 if exemptions == 1
 
-ren (tax_ind allow an_income tax_base) (tax_ind_1 allow_1 an_income_1 tax_base_1)
- 
-gen regime_1 = tax_ind_1
-
+sum tax_ind allowance tax_base [iw = hhweight]
 
 
 * Tax
@@ -136,6 +105,9 @@ replace income_tax = tax_base * `tax3' - 40500 if tranche == 3
 
 replace income_tax = 0 if income_tax < 0
 
+tabstat E20A2 E31A2 income_tax tax_base [aw = hhweight] if tax_base>0 & tax_ind == 1, s(p10 p25 p50 p75 p90 mean min max sum) 
+
+tabstat tax_ind allowance tax_base income_tax [aw = hhweight], s(sum) by(tranche)
 
 
 

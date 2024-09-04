@@ -29,7 +29,7 @@ if $load_scenario == 0 & $save_scenario == 0 {
 
 *Macros for household values 
 // This locals are different from those in dofile 1, please check that they contain what's needed. 	
-	local tax dirtax_total income_tax income_tax_reduc trimf /*csp_ipr csp_fnr*/ csh_css csh_ipm csh_mutsan new_poor old_poor sscontribs_total
+	local tax dirtax_total income_tax_1 income_tax_2 income_tax_3 /*csp_ipr csp_fnr*/ csh_css csh_ipm csh_mutsan new_poor old_poor sscontribs_total
 	local indtax indtax_total excise_taxes TVA_direct TVA_indirect Tax_TVA
 	local inkind education_inKind Sante_inKind am_sesame am_moin5 am_cesarienne am_CMU_progs inktransf_total
 	local transfer dirtransf_total am_bourse am_subCMU rev_universel $prog_total

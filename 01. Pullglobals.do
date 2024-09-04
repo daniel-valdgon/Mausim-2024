@@ -27,6 +27,8 @@
 	
 	noi di "$scenario_name_save"
 	
+	global c:all globals
+	macro list c	
 	
 /*-------------------------------------------------------/
 	2. Direct Taxes
@@ -39,28 +41,41 @@
 		levelsof Autresvalue  if Autresname=="`z'", local(val)
 		global `z' `val'
 	}
-			
-	drop if rate=="."
 				
-	*gen namevar = Threshold+"_"+Type
-	tempfile dt
-	save `dt', replace 
+	drop Autresname Autresvalue	
+	drop if rate=="."
+	
+	destring rate min max plus, replace
+	
+	global n_DirTax 3
+	
+	gen pol_name = name + "_" + regime
+	
+	levelsof pol_name, local(types)
+	
+	global names_DirTax ""
 
-	gen Type = name + "_" + regime
-	
-	levelsof concat, local(types)
-	*global typesDirTax "`types'"
-	
+	replace min = 0 if min == .
+	replace plus = 0 if plus == .
+	replace max = 10000000000 if max == .
+
 	foreach t of local types {
-		levelsof threshold if Type=="`t'", local(tholds)
-		global tholdsDirTax`t' "`tholds'"
+		global names_DirTax "$names_DirTax `t'"
+		levelsof threshold if pol_name=="`t'", local(tholds)
+		global tholds`t' "`tholds'"
+		
 		foreach z of local tholds {
-			levelsof Max  if Threshold=="`z'" & Type=="`t'", local(Max`z')
-			global Max`z'_`t' `Max`z''
-			levelsof Subvention  if Threshold=="`z'" & Type=="`t'", local(Subvention`z') 
-			global Subvention`z'_`t' `Subvention`z''
-			levelsof Tariff  if Threshold=="`z'" & Type=="`t'", local(Tariff`z') 
-			global Tariff`z'_`t' `Tariff`z''
+			levelsof max if threshold=="`z'" & pol_name=="`t'", local(Max`z')
+			global max`z'_`t' `Max`z''
+
+			levelsof min if threshold=="`z'" & pol_name=="`t'", local(Min`z')
+			global min`z'_`t' `Min`z''
+			
+			levelsof rate if threshold=="`z'" & pol_name=="`t'", local(Rate`z')
+			global rate`z'_`t' `Rate`z''
+			
+			levelsof plus if threshold=="`z'" & pol_name=="`t'", local(Plus`z')
+			global plus`z'_`t' `Plus`z''
 		}
 	}	
 	
@@ -198,8 +213,8 @@
 	drop if Tariff=="."
 			
 	*gen namevar = Threshold+"_"+Type
-	tempfile electricite_raw_dta
-	save `electricite_raw_dta', replace 
+	*tempfile electricite_raw_dta
+	*save `electricite_raw_dta', replace 
 
 	levelsof Type, local(types)
 	global typesElec "`types'"

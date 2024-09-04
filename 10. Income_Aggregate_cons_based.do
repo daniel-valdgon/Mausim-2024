@@ -64,7 +64,7 @@ merge 1:1 hhid using `Transfers_InKind' , nogen
 *merge 1:1 hhid using "$presim/gross_ymp_pc.dta" , nogen
 gen ymp_pc=yd_pre
 
-	local Directaxes 		"income_tax income_tax_reduc trimf"
+	local Directaxes 		"income_tax_1 income_tax_2 income_tax_3"
 	local Contributions 	"csh_css csh_ipm csh_mutsan" //(AGV) Note that csh_mutsan is created in 4.DirTransfers and not in 3.SSC (as it should). csp_ipr csp_fnr excluded because, in PDI, pension contributions are not included.
 	local DirectTransfers   "am_bourse am_subCMU rev_universel ${prog_total}"
 	
@@ -367,9 +367,9 @@ gen inktransf_total_pc = Sante_inKind_pc + education_inKind_pc + am_CMU_progs_pc
 *Labeling policy variables
 
 label var dirtax_total	"Impôts directs"
-label var income_tax	"Impôt sur le Revenu"
-label var income_tax_reduc	"Déductions et Quotient Familial"
-label var trimf	"TRIMF"
+label var income_tax_1	"Impôt sur le Revenu"
+label var income_tax_2	"Déductions et Quotient Familial"
+label var income_tax_3	"TRIMF"
 label var sscontribs_total	"Cotisations de Securité Sociale"
 label var csp_ipr	"Cotisation Retraite IPRES (DELETED)"
 label var csp_fnr	"Cotisation Retraite FNR (DELETED)"
@@ -405,7 +405,7 @@ label var am_moin5	"Soins gratuits pour les enfants moins 5 ans"
 label var am_cesarienne	"Cesarienne gratuite"
 
 
-local policylist `Directaxes' income_tax_reduc dirtax_total `Contributions' sscontribs_total `DirectTransfers' dirtransf_total `subsidies' subsidy_elec subsidy_fuel subsidy_eau subsidy_total `Indtaxes' Tax_TVA indtax_total `InKindTransfers' am_CMU_progs inktransf_total
+local policylist `Directaxes' dirtax_total `Contributions' sscontribs_total `DirectTransfers' dirtransf_total `subsidies' subsidy_elec subsidy_fuel subsidy_eau subsidy_total `Indtaxes' Tax_TVA indtax_total `InKindTransfers' am_CMU_progs inktransf_total
 
 foreach var of local policylist{
 	local labelle : variable label `var'
