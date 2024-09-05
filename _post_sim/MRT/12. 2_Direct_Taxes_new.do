@@ -31,8 +31,6 @@ if "`c(username)'"=="gabriellombomoreno" {
 	global xls_out		"${report}/Figure12_Direct_Taxes.xlsx"
 	global xls_sn    	"${path}/03. Tool/SN_Sim_tool_VI_`c(username)'.xlsx"
 	
-	global numscenarios	1
-
 	global proj_1		"Test_dt_sim2" 
 	global proj_2		""
 
@@ -77,20 +75,19 @@ tab E11 [iw = hhweight], m
 
 *-------- Property tax
 
-keep hhid hhweight wilaya G0 F1 G12B G10
-
+keep hhid hhweight wilaya G0 F1 G12B G10 an_income_3 tax_ind_3
 gduplicates drop 
 
-tab G0 F1 [iw = hhweight]
+gen owner = F1 == 1
 
-tabstat G12B G10 [aw = hhweight] if inlist(G0, 1, 3), s(mean p50 count) by(F1)
+tab G0 owner [iw = hhweight], col nofreq
 
-tabstat G12B G10 [aw = hhweight] if inlist(G0, 1, 3) & F1 == 3, s(mean p50 count) by(wilaya)
+* Values to impute multiplied by 12
+
+tabstat an_income_3 [aw = hhweight] if tax_ind_3 == 1, s(mean) by(wilaya)
 
 
-
-gbd
-
+gasb
 /*-------------------------------------------------------/
 	1. Names
 /-------------------------------------------------------*/

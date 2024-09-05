@@ -180,7 +180,7 @@ use "$presim/PMT_temp.dta", clear
 
 *-------------- Elegibility
 gen eleg_1 = 1 // Tekavoul
-gen eleg_2 = 1 //reason_drought == 1 // Food Transfers
+gen eleg_2 = reason_drought == 1 // Food Transfers
 replace eleg_2 = 1 if hh_prog_2 == 1
 
 gen eleg_3 = (elmaouna == 1 & milieu == 2) // Elmaouna

@@ -32,11 +32,9 @@ ren hid hhid
 	
 merge m:1 hhid using "$presim/01_menages.dta", nogen keep(3) keepusing(hhweight hhsize)
 
-keep hhid idind hhweight wilaya milieu B2 B4 E* F* G0
+keep hhid idind hhweight wilaya milieu B2 B4 E* F* G0 G12B
 
 gen uno = 1
-
-sum E10 E20A2 E20A1 E19 E15
 
 /*-------------------------------------------------------/
 	0. Impute Income
@@ -117,8 +115,30 @@ replace regime_2 = 2 if inrange(E11, 5, 9) & tax_ind_2 == 1
 
 
 **---------- Tax property
-gen tax_ind_3 = F1 == 1 & G0 == 1
-gen an_income_3 = 127516 if tax_ind_3 == 1
+gen tax_ind_3 = F1 == 1 & inlist(G0, 1, 3)
+
+gen an_rent = G12B*12
+
+
+preserve 
+	keep wilaya hhweight F1 G0 an_rent
+	keep if F1 == 3
+	keep if inlist(G0, 1, 3)
+	
+	collapse (mean) imp_rent = an_rent [aw = hhweight], by(wilaya)
+	
+	tempfile imp_rent
+	save `imp_rent', replace
+	
+	tab wilaya [iw = imp_rent], 
+	
+restore
+
+merge m:1 wilaya using `imp_rent', nogen keep(3) 
+
+gen an_income_3 = imp_rent if tax_ind_3  == 1
+replace an_income_3 = 0 if tax_ind_3  == 0
+
 gen regime_3 = tax_ind_3
 
 keep hhid idind allow1_ind_* allow2_ind_* an_income_* tax_ind_* regime_* 

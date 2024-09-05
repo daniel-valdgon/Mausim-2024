@@ -84,9 +84,9 @@ save `Direct_taxes_complete'
 *Tax data collapsed 
 collapse (sum) income_tax_1 income_tax_2 (max) income_tax_3, by(hhid)
 
-label var income_tax_1 "Household Income Tax payment"
-label var income_tax_2 "Tax Rep. de l'Impot Min. Fiscal"
-label var income_tax_3 "Tax Prop"
+label var income_tax_1 "IRPP"
+label var income_tax_2 "IBAPP"
+label var income_tax_3 "Property Tax"
 
 
 if $devmode== 1 {

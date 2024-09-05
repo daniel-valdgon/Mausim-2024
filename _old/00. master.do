@@ -154,6 +154,14 @@ if ("$country" == "MRT" & $run_presim == 1) {
  
 	keep hhid
  
+	/* 02. Income Taxes
+	preserve
+		 foreach var in income_tax income_tax_reduc trimf {
+			gen `var'=0
+		 } 
+		 save "$tempsim/income_tax_collapse.dta", replace
+	restore
+	*/
 	// 03. Social security contribution
 	preserve
 		 foreach var in csh_css csp_fnr csp_ipr csh_ipm {
@@ -162,6 +170,30 @@ if ("$country" == "MRT" & $run_presim == 1) {
 		 save "$tempsim/social_security_contribs.dta", replace
 	restore
 	
+	/* 04. Direct Transfers
+	preserve
+		 foreach var in am_BNSF am_subCMU am_subCMU100 am_subCMU50 am_CMU am_sesame am_moin5 am_cesarienne am_Cantine am_bourse csh_mutsan {
+			gen `var'=0
+		 } 
+		 save "$tempsim/Direct_transfers.dta", replace
+	restore
+
+	// 06. subsidies
+	preserve
+		foreach var in subsidy_elec_direct subsidy_elec_indirect subsidy_fuel_direct subsidy_fuel_indirect subsidy_eau_direct subsidy_eau_indirect {
+			gen `var'=0
+		}
+		save "${tempsim}/Subsidies" , replace 
+	restore
+    
+	// 07. Excise taxes
+	preserve
+		foreach var in excise_taxes{
+			gen `var'=0
+		}
+		save "${tempsim}/Excise_taxes" , replace 
+	restore
+     */
 	 // 09. Transfers InKind
 	preserve
 		foreach var in am_sante Sante_inKind am_pre_school_pub am_primary_pub am_secondary_pub am_tertiary_pub education_inKind{
