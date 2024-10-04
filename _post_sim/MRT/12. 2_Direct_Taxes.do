@@ -1,18 +1,22 @@
-/*=============================================================================
+/*============================================================================================
+ ======================================================================================
 
 	Project:		Direct Taxes - Figures Scenarios
 	Author:			Gabriel 
-	Creation Date:	July 18, 2024
+	Creation Date:	Sep 3, 2024
 	Modified:		
 	
-	Section: 		1. Validation
-					4. Absolute and Relative Incidence
-					5. Marginal Contributions
-					6. Poverty difference
-
-	Note: 
-	
-==============================================================================*/
+	Section: 		1. Names
+					2. Relative Incidence
+					3. Absolute Incidence
+					4. Marginal Contributions
+					5. Poverty and Inequality - Compare Scenarios
+					6. Map
+					
+	Note:
+				
+============================================================================================
+============================================================================================*/
 
 clear all
 macro drop _all
@@ -21,225 +25,281 @@ macro drop _all
 if "`c(username)'"=="gabriellombomoreno" {
 	
 	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/Mausim_2024"
-	global report 		"${path}/04. Reports/2. Direct Taxes/2. Presentation/Figures"
-	
+	global report 		"${path}/04. Reports/2. Direct Taxes/2. Presentation/Figures"	
 	global thedo     	"${path}/02. Scripts"
 
-	global xls_out    	"${report}/Figures12_Direct_Transfers.xlsx"
+	global xls_out		"${report}/Figure12_Direct_Taxes.xlsx"
 	global xls_sn    	"${path}/03. Tool/SN_Sim_tool_VI_`c(username)'.xlsx"
 	
-	global numscenarios	7
+	global numscenarios	3
+	
+	global proj_1		"Ref_MRT_2019" 
+	global proj_2		"v1_MRT_IRPPNoAll"
+	global proj_3		"v1_MRT_DT_CM"
 
-	global proj_1		"v3_MRT_Ref" 
-	global proj_2		"v1_MRT_NoTrans"  
-	global proj_3		"v1_MRT_UBI" 
-	global proj_4		"v4_MRT_Tekavoul" 
-	global proj_5		"v4_MRT_School" 
-	global proj_6		"v4_MRT_Elmaouna" 
-	global proj_7		"v4_MRT_FoodT" 
 
-	global policy		"income_tax"
-
+	global policy		"dirtax_total income_tax_1 income_tax_2 income_tax_3"
+	global allpolicy	"dirtax_total sscontribs_total dirtransf_total subsidy_total indtax_total inktransf_total" 
+	
+	global income		"yd" // ymp, yn, yd, yc, yf
+	global reference 	"zref" // Only one
 }
 
-	global data_sn 		"${path}/01_data/1_raw/MRT"    
-	global presim       "${path}/01_data/2_pre_sim/MRT"
-	global data_out    	"${path}/01_data/4_sim_output"
-	global theado       "$thedo/ado"
-	
+	global data_sn 		"${path}/01. Data/1_raw/MRT"    
+	global presim       "${path}/01. Data/2_pre_sim/MRT"
+	global data_out    	"${path}/01. Data/4_sim_output"
+	global theado       "$thedo/ado"	
+	global variable 	"$income"
 
+	scalar t1 = c(current_time)
+
+	
 *===============================================================================
 // Run necessary ado files
 *===============================================================================
 
-cap run "$theado//_ebin.ado"
-	
+cap run "$theado//_ebin.ado"	
+
+
 /*-------------------------------------------------------/
-	1. Validation
+	0. Validation and Assumptions
 /-------------------------------------------------------*/
 
-	
 use "$data_sn/Datain/individus_2019.dta", clear
 		
 ren hid hhid
-
-egen tag = tag(hhid)	
 	
-keep hhid B2 B4 E*	
-	
-merge m:1 hhid using "$data_out/output_${proj_1}.dta", nogen keep(3) keepusing(hhweight hhsize ${policy}_pc ymp_pc)
+merge m:1 hhid using "$presim/01_menages.dta", nogen keep(3) keepusing(hhweight hhsize)
+merge 1:1 idind using "$presim/02_Income_tax_input.dta", nogen
 
 
-tabstat income_tax [aw = hhweight], s(mean sum)
+*-------- Wages and Salaries
+tab E11 E18B [iw = hhweight], m
 
-_ebin ymp_pc [aw=hhweight], nq(10) gen(decile_ymp)
+gen worker = inrange(E11, 1, 9)
+gen soc_sec = E18B == 1
 
-tabstat E20A2 [aw = hhweight] if tax_ind == 1, s(min max mean sum) by(decile_ymp)
+gen pos = E20A2>0 & E20A2!=. & worker == 1 
+gen pos_soc_sec = E20A2>0 & E20A2!=. & soc_sec == 1 
 
+tabstat an_income_1 [aw = hhweight] if pos_soc_sec == 1, s(mean)
 
-gsafvbher
 
-gen uno = 1
+gen aux_income_1 = an_income_1/1000/10
 
-* Working-age population
-gen female = (B2==2)
-gen wa_pop = inrange(B4,15,64)
-gen nwa_pop = inrange(B4,0,14)
-gen n2wa_pop = inrange(B4,65,96)
 
-tab1 E6A E6B [iw = hhweight]
+twoway  (kdensity aux_income_1 [aw = hhweight] if B2 == 1) ///
+		(kdensity aux_income_1 [aw = hhweight] if B2 == 2) ///
+		(kdensity aux_income_1 [aw = hhweight]), ///
+		xtitle("MRU (000)") ytitle("Density") ///
+		legend( label (1 "Male annual labor income") label (2 "Female annual labor income") label (3 "Annual labor income") position(1))  
 
-* Individuals
-tab E10 E19 [iw = hhweight], row nofreq
+graph export "$report/income.png", width(1500) height(900) replace
 
-tab E10 E12 [iw = hhweight], row nofreq
 
-tab E12 [iw = hhweight]
+gen aux_income_21 = inc_imp/1000/10
+gen aux_income_2 = inc_imp2/1000/10
 
-dagrnr
+twoway  (kdensity aux_income_2 [aw = hhweight]), ///
+		xtitle("MRU (000)") ytitle("Density") 
 
-* Principal activity
-gen employee_1 = .
-replace employee_1 = 1 if inrange(E10, 1, 6)
-replace employee_1 = 0 if inrange(E10, 7, 12)
+graph export "$report/income_imp.png", width(1500) height(900) replace
 
-gen tax_ind_1 = employee_1 == 1 & E20A2>0 & E20A2!=. & E20A1 == 1
-replace tax_ind_1 = 0 if E19 == 7
+drop aux_income_1 aux_income_2
 
-gen tax_base_1 = E20A2*E15 if tax_ind_1 == 1
- 
+*-------- Property tax
 
-* Secondary activity
-gen employee_2 = .
-replace employee_2 = 1 if inrange(E27, 1, 6)
-replace employee_2 = 0 if inrange(E27, 7, 12)
+keep hhid hhweight wilaya G0 F1 G12B G10 an_income_3 tax_ind_3
+gduplicates drop 
 
-gen tax_ind_2 = employee_2 == 1 & E31A2>0 & E31A2!=. & E31A1 == 1
-gen tax_base_2 = E31A2*E29 if tax_ind_2 == 1
+gen owner = F1 == 1
 
-gen tax_ind = tax_ind_1 == 1 | tax_ind_2 == 1
+tab G0 owner [iw = hhweight], col nofreq
 
-* Allowances
-gen allow1 = 60000
-gen allow2 = tax_base_1 * 0.20 if E19 == 6
+* Values to impute multiplied by 12
 
-egen allowance = rowtotal(allow1 allow2)
-replace allowance = (-1) * allowance
+tabstat an_income_3 [aw = hhweight] if tax_ind_3 == 1, s(mean) by(wilaya)
 
-egen tax_base = rowtotal(tax_base_1 tax_base_2 allowance)
-replace tax_base = 0 if tax_base <0
+collapse (mean) income = an_income_3 [aw = hhweight] if tax_ind_3 == 1, by(wilaya)
 
+tostring wilaya, gen(name)
+gen len = length(name)
+replace name = "0" + name if len == 1
+keep name income
 
-* Exemptions
-gen exemptions = 0
-replace exemptions = 1 if tax_base <= 60000
-replace exemptions = 1 if inlist(E8, 1, 2)
+tempfile map
+save `map', replace
 
-replace tax_ind = 0 if exemptions == 1
 
-sum tax_ind allowance tax_base [iw = hhweight]
+/*------------------------------------------------------/
+	10. Map
+/-------------------------------------------------------*/
 
+*------ Coordinates
+*shp2dta using "$data_sn/Shapes/mrt_admbnda_adm1_ansade_20240327.shp", database("$data_sn/mrtdb") coordinates("$data_sn/mrtcoord") genid(id) replace
 
-* Tax
-local tax1 = 0.15
-local tax2 = 0.25
-local tax3 = 0.40
+*------ Map
+use "$data_sn/mrtdb", clear
 
-gen tranche = 0
-replace tranche = 1 if inrange(tax_base, 1, 90000) 
-replace tranche = 2 if inrange(tax_base, 90000, 21000) 
-replace tranche = 3 if inrange(tax_base, 21000, .) 
+gen name = substr(ADM1_PCODE, 3, 4) // Admin 1
 
-gen income_tax = 0
-replace income_tax = tax_base * `tax1' if tranche == 1
-replace income_tax = tax_base * `tax2' - 9000  if tranche == 2
-replace income_tax = tax_base * `tax3' - 40500 if tranche == 3
+merge m:1 name using `map', gen(mr_coor) 
 
-replace income_tax = 0 if income_tax < 0
+gen income2 = round(income/10/1000)
 
-tabstat E20A2 E31A2 income_tax tax_base [aw = hhweight] if tax_base>0 & tax_ind == 1, s(p10 p25 p50 p75 p90 mean min max sum) 
+spmap income2 using "$data_sn/mrtcoord", id(id) fcolor(Blues) legend(region(lcolor(black) margin(1 1 1 1) fcolor(white)) pos(10) title("Mean tax MRU (000)", size(*0.5))) 
 
-tabstat tax_ind allowance tax_base income_tax [aw = hhweight], s(sum) by(tranche)
-
-gebf
-
-keep hhid tax_ind tax_base income_tax allowance tranche
-
-save "$presim/02_Income_tax_input.dta", replace
-
-
-gvsvs
-gcollapse (sum) income_tax, by(hhid)
-
-
-
-gsbd
-
-
-
-
-*------------ Validation
-tab wa_pop employee [iw = hhweight], m row // 50.44% Working-age pop
-tab employee [iw = hhweight], m // 23% empleados con act principal
-
-tab employee [iw = hhweight], matcell(A1)
-tab employee [iw = hhweight] if E20A2>0 & E20A2!=., matcell(A2)
-tab employee E20A1 [iw = hhweight] if E20A2>0 & E20A2!=., matcell(A3)
-
-mat A = A1, A2, A3
-matlist A
-
-tab E19 [iw = hhweight] if tax_ind == 1
-
-
-
-
-
-tab employee tax_ind [iw = hhweight], m row
-
-
-
-
-tab tax_ind [iw = hhweight]
-
-tab E20A1 tax_ind [iw = hhweight], row
-
-
-
-tab female wa_pop [iw = hhweight], row nofreq
-
-
-
-tab1 E10 [iw = hhweight]
-tab1 E13* [iw = hhweight] if E10 == 7, m
-
-// E20B, E19, E2
-
-tab1 E2A E2B E2C E2D E2E E2F E2G E2H E2I E2J [iw = hhweight]
-
-tab E20B [iw = hhweight] if E2A == 1
-
-tab E15 [iw = hhweight]  if E2A == 1
-
-* Patron: IBAPP, all in regime 3, flat rate 
-* Assumption: Mensual revenue corresponds to sales?
-* How to annualize the data?
-tabstat E20A2 if E10 == 7 [aw = hhweight], s(count mean max) by(E15)
-
-tab1 E10 [iw = hhweight], m
-
-
+graph export "$report/map_proptax.png", replace
 
 
 /*-------------------------------------------------------/
-	4. Absolute and Relative Incidence
+	1. Names
 /-------------------------------------------------------*/
 
-global income "yd" // yd, ymp
+*----- Scenarios
+forvalues scenario = 1/$numscenarios {
+	
+	clear
+	set obs 1
+	
+	gen scenario = `scenario'
+	gen name = "${proj_`scenario'}"
+	
+	tempfile name_`scenario'
+	save `name_`scenario'', replace
+}
 
-forvalues scenario = 1/1 { //$numscenarios {
+clear
+forvalues scenario = 1/$numscenarios {
+	append using `name_`scenario''
+}
 
-	*-----  Absolute Incidence
+export excel "$xls_out", sheet(Scenarios) first(variable) sheetreplace cell(A1)
+
+
+/*-------------------------------------------------------/
+	2. Netcashflow
+/-------------------------------------------------------*/
+
+forvalues scenario = 1/$numscenarios {
+
+	import excel "$xls_sn", sheet("all${proj_`scenario'}") firstrow clear 
+
+	keep if measure=="netcash" 
+	gen keep = 0
+
+	global policy2 	""
+	foreach var in $allpolicy {
+		replace keep = 1 if variable == "`var'_pc"
+		global policy2	"$policy2 v_`var'_pc_${income}" 
+	}	
+	keep if keep ==1 
+
+	replace variable=variable+"_ymp" if deciles_pc!=.
+	replace variable=variable+"_yd" if deciles_pc==.
+
+	egen decile=rowtotal(yd_deciles_pc deciles_pc)
+
+	keep decile variable value
+	*gen val2 = . 
+	*replace val2 = value * (-100) if value < 0
+	*replace val2 = value*(100) if value >= 0
+	rename value v_
+
+	reshape wide v_, i(decile) j(variable) string
+	drop if decile ==0
+	
+	keep decile *_${income}
+	gen scenario = `scenario'
+	order scenario decile $policy2
+	ren (*) (scenario decile $allpolicy)
+	
+	tempfile inc_`scenario'
+	save `inc_`scenario'', replace
+
+}
+
+clear
+forvalues scenario = 1/$numscenarios {
+	append using `inc_`scenario''
+}
+
+export excel "$xls_out", sheet(Netcash) first(variable) sheetmodify cell(A1)
+
+
+/*-------------------------------------------------------/
+	2 Relative Incidence - Boxplot
+/-------------------------------------------------------*/
+
+*local scenario 1
+*use "$data_out/output_${proj_`scenario'}.dta", clear
+
+*keep hhid hhweight income_tax_1 yd_deciles_pc
+
+*reshape wide yd_deciles_pc, i(hhid) 
+
+/*-------------------------------------------------------/
+	2 Relative Incidence
+/-------------------------------------------------------*/
+
+	global income		"ymp" // ymp, yn, yd, yc, yf
+
+
+forvalues scenario = 1/$numscenarios {
+
+	import excel "$xls_sn", sheet("all${proj_`scenario'}") firstrow clear 
+
+	keep if measure=="netcash" 
+	gen keep = 0
+
+	global policy2 	""
+	foreach var in $policy {
+		replace keep = 1 if variable == "`var'_pc"
+		global policy2	"$policy2 v_`var'_pc_${income}" 
+	}	
+	keep if keep ==1 
+
+	replace variable=variable+"_ymp" if deciles_pc!=.
+	replace variable=variable+"_yd" if deciles_pc==.
+
+	egen decile=rowtotal(yd_deciles_pc deciles_pc)
+
+	keep decile variable value
+	*gen val2 = . 
+	*replace val2 = value * (-100) if value < 0
+	*replace val2 = value*(100) if value >= 0
+	rename value v_
+
+	reshape wide v_, i(decile) j(variable) string
+	drop if decile ==0
+	
+	keep decile *_${income}
+	gen scenario = `scenario'
+	order scenario decile $policy2
+	ren (*) (scenario decile $policy)
+	
+	tempfile inc_`scenario'
+	save `inc_`scenario'', replace
+
+}
+
+
+clear
+forvalues scenario = 1/$numscenarios {
+	append using `inc_`scenario''
+}
+
+export excel "$xls_out", sheet(Incidence) first(variable) sheetmodify cell(A1)
+
+/*-------------------------------------------------------/
+	3. Absolute Incidence
+/-------------------------------------------------------*/
+
+	global income		"ymp" // ymp, yn, yd, yc, yf
+
+
+forvalues scenario = 1/$numscenarios {
+
 	import excel "$xls_sn", sheet("all${proj_`scenario'}") firstrow clear 
 
 	keep if measure=="benefits" 
@@ -270,14 +330,193 @@ forvalues scenario = 1/1 { //$numscenarios {
 	}
 
 	keep decile in_*
+	gen scenario = `scenario'
+	order scenario, first
+	ren (*) (scenario decile $policy)
 
-	tempfile abs
-	save `abs', replace
+	
+	tempfile inc_`scenario'
+	save `inc_`scenario'', replace
+	
+}
 
-	*-----  Relative Incidence
+
+clear
+forvalues scenario = 1/$numscenarios {
+	append using `inc_`scenario''
+}
+
+export excel "$xls_out", sheet(Incidence) first(variable) sheetmodify cell(S1)
+	
+	
+/*-------------------------------------------------------/
+	4. Marginal Contributions
+/-------------------------------------------------------*/
+
+	global income		"ymp" // ymp, yn, yd, yc, yf
+
+
+forvalues scenario = 1/$numscenarios {
+	
 	import excel "$xls_sn", sheet("all${proj_`scenario'}") firstrow clear 
+	
+	* Total values
+	local len : word count $policy
+	
+	sum value if measure == "fgt0" & variable == "${variable}_pc" & reference == "$reference"
+	global pov0 = r(mean)
+	 
+	sum value if measure == "fgt1" & variable == "${variable}_pc" & reference == "$reference"
+	global pov1 = r(mean) 
+	 
+	sum value if measure == "gini" & variable == "${variable}_pc"
+	global gini1 = r(mean)
+	
+	* Variables of interest
+	gen keep = 0
+	global policy2 	"" 
+	foreach var in $policy {
+		replace keep = 1 if variable == "${variable}_inc_`var'"
+		global policy2	"$policy2 v_`var'_pc_${variable}" 
+	}	
+	
+	keep if keep == 1
+	
+	keep if inlist(measure, "fgt0", "fgt1", "gini") 
+	keep if inlist(reference, "$reference", "") 
+	
+	* Order the results
+	gen o_variable = ""
+	local len : word count $policy
+	forvalues i = 1/`len' {
+		local v : word `i' of $policy
+		replace o_variable = "`i'_`v'"  if variable == "${variable}_inc_`v'"
+	}
+	
+	ren value val_
+	keep o_variable measure val_
+	gsort o_variable
+	
+	reshape wide val_, i(o_variable) j(measure, string)
+	
+	gen gl_fgt0 = $pov0
+	gen gl_fgt1 = $pov1
+	gen gl_gini = $gini1
+	
+	tempfile mc
+	save `mc', replace
 
-	keep if measure=="netcash" 
+*-----  Kakwani	
+	import excel "$xls_sn", sheet("conc${variable}_${proj_`scenario'}") firstrow clear 
+	
+	keep ${variable}_centile_pc ${variable}_pc $policy
+	keep if ${variable}_centile_pc == 999
+	
+	ren * var_*
+	ren var_${variable}_centile_pc income_centile_pc
+	ren var_${variable}_pc income_pc
+	
+	reshape long var_, i(income_centile_pc) j(variable, string)
+	ren var_ value_
+	
+	* Order the results
+	gen o_variable = ""
+	local len : word count $policy
+	forvalues i = 1/`len' {
+		local v : word `i' of $policy
+		replace o_variable = "`i'_`v'"  if variable == "`v'_pc"
+	}
+
+	keep o_variable income_pc value_
+	ren value value_k
+
+	merge 1:1 o_variable using `mc', nogen
+	
+	gen scenario = `scenario'
+	
+	ren * cat_*
+	ren (cat_scenario cat_o_variable) (scenario variable)
+	
+	reshape long cat_ , i(scenario variable) j(cat, string)
+	
+	gen var = substr(variable, 3, length(variable))
+	drop variable
+	
+	reshape wide cat_ , i(scenario cat) j(var, string)
+
+	ren * (scenario indic $policy)
+	
+	tempfile pov_`scenario'
+	save `pov_`scenario'', replace
+}	
+
+clear
+forvalues scenario = 1/$numscenarios {
+	append using `pov_`scenario''
+}
+
+export excel "$xls_out", sheet(Marginal) first(variable) sheetreplace 
+
+
+/*-------------------------------------------------------/
+	5. Poverty and Inequality - Compare Scenarios
+/-------------------------------------------------------*/
+	
+	global income		"yd" // ymp, yn, yd, yc, yf
+
+	
+forvalues scenario = 1/$numscenarios {
+	
+	import excel "$xls_sn", sheet("all${proj_`scenario'}") firstrow clear 
+	
+	* Total values
+	local len : word count $policy
+	
+	sum value if measure == "fgt0" & variable == "${variable}_pc" & reference == "$reference"
+	global pov0 = r(mean)
+
+	sum value if measure == "fgt1" & variable == "${variable}_pc" & reference == "$reference"
+	global pov1 = r(mean)
+	
+	sum value if measure == "gini" & variable == "${variable}_pc"
+	global gini1 = r(mean)
+	
+	
+	clear
+	set obs 1 
+	
+	gen gl_fgt0 = $pov0
+	gen gl_fgt1 = $pov1
+	gen gl_gini = $gini1
+	
+	gen scenario = `scenario'
+	order scenario, first
+	
+	tempfile pov_`scenario'
+	save `pov_`scenario'', replace
+	
+}	
+
+clear
+forvalues scenario = 1/$numscenarios {
+	append using `pov_`scenario''
+}
+
+export excel "$xls_out", sheet(Poverty) first(variable) sheetreplace 
+
+/*-------------------------------------------------------/
+	6. Coverage
+/-------------------------------------------------------*/
+	
+	global income		"ymp" // ymp, yn, yd, yc, yf
+
+	
+forvalues scenario = 1/$numscenarios {
+	
+	*local scenario = 1
+	import excel "$xls_sn", sheet("all${proj_`scenario'}") firstrow clear 
+	
+	keep if measure=="coverage" 
 	gen keep = 0
 
 	global policy2 	""
@@ -286,38 +525,41 @@ forvalues scenario = 1/1 { //$numscenarios {
 		global policy2	"$policy2 v_`var'_pc_${income}" 
 	}	
 	keep if keep ==1 
-
+	
 	replace variable=variable+"_ymp" if deciles_pc!=.
 	replace variable=variable+"_yd" if deciles_pc==.
 
 	egen decile=rowtotal(yd_deciles_pc deciles_pc)
 
 	keep decile variable value
-	replace value = value*(-100) if value < 0
-	replace value = value*(100) if value >= 0
+	
 	rename value v_
 
 	reshape wide v_, i(decile) j(variable) string
 	drop if decile ==0
+	
 	keep decile *_${income}
-
-	order decile $policy2
-
-	merge 1:1 decile using `abs', nogen
-	
 	gen scenario = `scenario'
-	order scenario, first
+	order scenario decile $policy2
+	ren (*) (scenario decile $policy)
 	
-	tempfile inc_`scenario'
-	save `inc_`scenario'', replace
+	tempfile cov_`scenario'
+	save `cov_`scenario'', replace
+	
+}	
 
+clear
+forvalues scenario = 1/$numscenarios {
+	append using `cov_`scenario''
 }
 
+export excel "$xls_out", sheet(Coverage) first(variable) sheetmodify 
 
 
 
 
-
+scalar t2 = c(current_time)
+display "Running the figures took " (clock(t2, "hms") - clock(t1, "hms")) / 1000 " seconds"
 
 
 

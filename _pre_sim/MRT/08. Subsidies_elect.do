@@ -9,6 +9,7 @@
 
 set seed 123456789
 
+
 *----- Data on household location 
 use "$data_sn/menage_2019.dta", clear
  
@@ -130,16 +131,20 @@ gen hh_elec = depan > 0 & I8 == 1
 */
 
 * Allocate household based on consumption 
-    bysort hh_elec (kwh_test): gen cum_hhs=sum(hhweight) if hh_elec==1
+
+	gen rand = uniform()
+	
+    bysort hh_elec (kwh_test rand): gen cum_hhs=sum(hhweight) if hh_elec==1
 
 * Social: 52% of LV users,  Domestic: 42% of LV users
 	local dist_social = 52 / (52 + 42) // Re-scale distribution of social and domestic
-    
+	
     qui: sum hh_elec [iw = hhweight] if hh_elec == 1
     local hh_social = r(sum_w) * `dist_social' 
     
     gen social =  cum_hhs <= `hh_social' if hh_elec == 1
-    recode social (1=0) (0=1), gen (domestic)
+    recode social (1=0) (0=1), gen(domestic)
+   
     tab domestic [iw = hhweight]
 
 * Expenditure and consumption
@@ -147,8 +152,6 @@ gen hh_elec = depan > 0 & I8 == 1
 	replace tarif = `tarif_s' if domestic == 0  
 	gen prime_fix = `prime_fix_d' if domestic == 1 
 	replace prime_fix = `prime_fix_s' if domestic == 0   
-
-	
 	
 * Get annual kWh
 	gen kwh = (depan - (prime_fix * 12) - (`redevance' * 12)) / (tarif) if depan>0 // Assumes everybody pay VAT, underestimate the consumption of Kwh
@@ -189,7 +192,6 @@ label var prepaid_woyofal			"Type of facture (prepaid or postpaid)"
 label var codpr_elec				"Electricity product"
 label var hh_elec					"Household has access to electricity" 
 *hh_elec1,2,3 are no needed, only for comparison purposes on the figures dofile
-
 
 save "$presim/08_subsidies_elect.dta", replace
 

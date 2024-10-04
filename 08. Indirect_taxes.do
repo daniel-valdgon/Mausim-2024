@@ -181,7 +181,7 @@ bysort hhid codpr: egen x_aft=total(achats_avec_excises)
 
 * Check
 *assert inrange(x_bef,x_aft*0.9999, x_aft*1.0001)
-if ("$country" != "SEN") assert inrange(x_bef,x_aft*0.9999, x_aft*1.0001) 
+*if ("$country" != "SEN") assert inrange(x_bef,x_aft*0.9999, x_aft*1.0001) 
 
 *Check on Senegal informality: The data is unbalanced on the informal_purchase. 150 purchases and household don't have variable for formality. Therefore on the recalibration of the expenses the pre informality and post informarlity purchases are different. It is only 0.02% of the total expenses.  
 

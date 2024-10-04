@@ -1,65 +1,76 @@
-/*==============================================================================
-	Project:		Figures General
+/*=============================================================================
+===============================================================================
+	Project:		Direct Taxes - Figures Scenarios
 	Author:			Gabriel 
-	Creation Date:	Aug 27, 2024
+	Creation Date:	Sep 3, 2024
 	Modified:		
 	
-	Note: 			Compare by scenarios, netcashflow with compensatory measures. 				
-===============================================================================*/
+	Section: 		1. Names
+					2. Relative Incidence
+					3. Absolute Incidence
+					4. Marginal Contributions
+					5. Poverty and Inequality - Compare Scenarios
+					6. Map
+					
+	Note:
+===============================================================================
+==============================================================================*/
 
 clear all
 macro drop _all
+
+local dirtr			"dirtransf_total am_prog_1 am_prog_2 am_prog_3 am_prog_4"
+local dirtax		"dirtax_total income_tax_1 income_tax_2 income_tax_3"
+local sub			"subsidy_total subsidy_elec_direct subsidy_elec_indirect subsidy_emel subsidy_emel_direct subsidy_emel_indirect"
+local indtax		"indtax_total excise_taxes Tax_TVA TVA_direct TVA_indirect"
+local inktr			"inktransf_total"
 
 * Gabriel
 if "`c(username)'"=="gabriellombomoreno" {
 	
 	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/Mausim_2024"
-	global report 		"${path}/04. Reports/7. Summary/2. Presentation/Figures"	
+	*global report 		"${path}/04. Reports/7. Summary/2. Presentation/Figures"
 	global thedo     	"${path}/02. Scripts"
 
-	global xls_out		"${report}/Compare_Scenarios.xlsx"
+	global xls_out		"${path}/03. Tool/General_Results.xlsx"
 	global xls_sn    	"${path}/03. Tool/SN_Sim_tool_VI_`c(username)'.xlsx"
 	
-	global numscenarios	11
-
-	global proj_1		"v3_MRT_Ref" 
-	global proj_2		"v3_MRT_NoExemp"
-	global proj_3		"v3_MRT_NoExSomeFood"
-	global proj_4		"v1_MRT_NoTrans"  
-	global proj_5		"v1_MRT_UBI" 
-	global proj_6		"v4_MRT_Tekavoul" 
-	global proj_7		"v4_MRT_School" 
-	global proj_8		"v4_MRT_Elmaouna" 
-	global proj_9		"v4_MRT_FoodT" 
-	global proj_10		"v3_MRT_ElecRef" 
-	global proj_11		"v3_MRT_Compen" 
-
-	local allpolicy		"dirtax_total sscontribs_total dirtransf_total subsidy_total indtax_total inktransf_total" 
-	local dirtr			"dirtransf_total am_prog_1 am_prog_2 am_prog_3 am_prog_4"
-	local dirtax		"dirtax_total income_tax income_tax_reduc trimf"
-	local indtr			"subsidy_total subsidy_elec subsidy_elec_direct subsidy_elec_indirect"
-	local indtax		"indtax_total excise_taxes Tax_TVA TVA_direct TVA_indirect"
-	local inktr			"inktransf_total"
+	* Set Parameters
+	global numscenarios	1
 	
-	global policy 		"`allpolicy'" 
+	global proj_1		"vf3_agric_MRT" 
+	global proj_2		"vf2_agric_MRT"
+	global proj_3		"DoubleSinGoods"  
+	global proj_4		"RevRecSinGoods"
+	global proj_5		"DoubleSinGoodsBR"
+
+	global policy		"subsidy_emel subsidy_emel_direct subsidy_emel_indirect subsidy_inag subsidy_inag_direct subsidy_inag_indirect"	
 	
+	global income		"yd" // ymp, yn, yd, yc, yf
+	global income2		"yf"
+	global reference 	"zref" // Only one
 }
 
+	global allpolicy	"dirtax_total sscontribs_total dirtransf_total subsidy_total indtax_total inktransf_total" 
 	global data_sn 		"${path}/01. Data/1_raw/MRT"    
 	global presim       "${path}/01. Data/2_pre_sim/MRT"
 	global data_out    	"${path}/01. Data/4_sim_output"
-	global theado       "$thedo/ado"
+	global theado       "$thedo/ado"	
+
 	scalar t1 = c(current_time)
-
 	
-*===============================================================================
+*==============================================================================
 // Run necessary ado files
-*===============================================================================
+*==============================================================================
 
-*cap run "$theado//_ebin.ado"	
+cap run "$theado//_ebin.ado"	
 
 /*-------------------------------------------------------/
-	0. Names
+	0. Validation and Assumptions
+/-------------------------------------------------------*/
+
+/*-------------------------------------------------------/
+	1. Names
 /-------------------------------------------------------*/
 
 *----- Scenarios
@@ -82,36 +93,72 @@ forvalues scenario = 1/$numscenarios {
 
 export excel "$xls_out", sheet(Scenarios) first(variable) sheetreplace cell(A1)
 
+*putexcel B2 = "$policy", sheet(table2)
+
 /*-------------------------------------------------------/
-	1. Map
+	2. Netcashflow
 /-------------------------------------------------------*/
-/*
-*------ Coordinates
-shp2dta using "$data_sn/Shapes/mrt_admbnda_adm1_ansade_20240327.shp", database("$data_sn/mrtdb") coordinates("$data_sn/mrtcoord") genid(id) replace
 
-*------ Indicators
+forvalues scenario = 1/$numscenarios {
 
-tempfile map 
-save `map', replace 
+	import excel "$xls_sn", sheet("all${proj_`scenario'}") firstrow clear 
 
-*------ Map
-use "$data_sn/mrtdb", clear
+	keep if measure=="netcash" 
+	gen keep = 0
 
-gen name = substr(ADM1_PCODE, 3, 4) // Admin 1
+	global policy2 	""
+	foreach var in $allpolicy {
+		replace keep = 1 if variable == "`var'_pc"
+		global policy2	"$policy2 v_`var'_pc_${income}" 
+	}	
+	keep if keep ==1 
 
-merge m:1 name using `map', gen(mr_coor) 
+	replace variable=variable+"_ymp" if deciles_pc!=.
+	replace variable=variable+"_yd" if deciles_pc==.
 
-spmap hh_prog using "$data_sn/mrtcoord", id(id) fcolor(Blues) legend(region(lcolor(black) margin(1 1 1 1) fcolor(white)) pos(10) title("Number of households", size(*0.5) )) 
-*/
+	egen decile=rowtotal(yd_deciles_pc deciles_pc)
+
+	keep decile variable value
+	*gen val2 = . 
+	*replace val2 = value * (-100) if value < 0
+	*replace val2 = value*(100) if value >= 0
+	rename value v_
+
+	reshape wide v_, i(decile) j(variable) string
+	drop if decile ==0
+	
+	keep decile *_${income}
+	gen scenario = `scenario'
+	order scenario decile $policy2
+	ren (*) (scenario decile $allpolicy)
+	
+	tempfile inc_`scenario'
+	save `inc_`scenario'', replace
+
+}
+
+clear
+forvalues scenario = 1/$numscenarios {
+	append using `inc_`scenario''
+}
+
+export excel "$xls_out", sheet(Netcash) first(variable) sheetmodify cell(A1)
 
 
+/*-------------------------------------------------------/
+	2. Relative Incidence - Boxplot
+/-------------------------------------------------------*/
 
+*local scenario 1
+*use "$data_out/output_${proj_`scenario'}.dta", clear
+
+*keep hhid hhweight income_tax_1 yd_deciles_pc
+
+*reshape wide yd_deciles_pc, i(hhid) 
 
 /*-------------------------------------------------------/
 	2. Relative Incidence
 /-------------------------------------------------------*/
-
-	global income 	"ymp" // yd, ymp
 
 forvalues scenario = 1/$numscenarios {
 
@@ -151,7 +198,6 @@ forvalues scenario = 1/$numscenarios {
 
 }
 
-
 clear
 forvalues scenario = 1/$numscenarios {
 	append using `inc_`scenario''
@@ -159,12 +205,9 @@ forvalues scenario = 1/$numscenarios {
 
 export excel "$xls_out", sheet(Incidence) first(variable) sheetmodify cell(A1)
 
-
 /*-------------------------------------------------------/
-	2. Absolute Incidence
+	3. Absolute Incidence
 /-------------------------------------------------------*/
-
-	global income 	"ymp" // yd, ymp
 
 forvalues scenario = 1/$numscenarios {
 
@@ -218,34 +261,32 @@ export excel "$xls_out", sheet(Incidence) first(variable) sheetmodify cell(S1)
 	
 	
 /*-------------------------------------------------------/
-	3. Marginal Contributions
+	4. Marginal Contributions
 /-------------------------------------------------------*/
-
-	global variable 	"ymp" // Only one
-	global reference 	"zref" // Only one
 
 forvalues scenario = 1/$numscenarios {
 	
+	local scenario 1
 	import excel "$xls_sn", sheet("all${proj_`scenario'}") firstrow clear 
 	
 	* Total values
 	local len : word count $policy
 	
-	sum value if measure == "fgt0" & variable == "${variable}_pc" & reference == "$reference"
+	sum value if measure == "fgt0" & variable == "${income}_pc" & reference == "$reference"
 	global pov0 = r(mean)
 	 
-	sum value if measure == "fgt1" & variable == "${variable}_pc" & reference == "$reference"
+	sum value if measure == "fgt1" & variable == "${income}_pc" & reference == "$reference"
 	global pov1 = r(mean) 
 	 
-	sum value if measure == "gini" & variable == "${variable}_pc"
+	sum value if measure == "gini" & variable == "${income}_pc"
 	global gini1 = r(mean)
 	
 	* Variables of interest
 	gen keep = 0
 	global policy2 	"" 
 	foreach var in $policy {
-		replace keep = 1 if variable == "${variable}_inc_`var'"
-		global policy2	"$policy2 v_`var'_pc_${variable}" 
+		replace keep = 1 if variable == "${income}_inc_`var'"
+		global policy2	"$policy2 v_`var'_pc_${income}" 
 	}	
 	
 	keep if keep == 1
@@ -258,7 +299,7 @@ forvalues scenario = 1/$numscenarios {
 	local len : word count $policy
 	forvalues i = 1/`len' {
 		local v : word `i' of $policy
-		replace o_variable = "`i'_`v'"  if variable == "${variable}_inc_`v'"
+		replace o_variable = "`i'_`v'"  if variable == "${income}_inc_`v'"
 	}
 	
 	ren value val_
@@ -275,14 +316,17 @@ forvalues scenario = 1/$numscenarios {
 	save `mc', replace
 
 *-----  Kakwani	
-	import excel "$xls_sn", sheet("conc${variable}_${proj_`scenario'}") firstrow clear 
+	import excel "$xls_sn", sheet("conc${income}_${proj_`scenario'}") firstrow clear 
 	
-	keep ${variable}_centile_pc ${variable}_pc $policy
-	keep if ${variable}_centile_pc == 999
+	global policy2: subinstr global policy " " "_pc ", all
+	di "$policy2"
+	
+	keep ${income}_centile_pc ${income}_pc $policy2
+	keep if ${income}_centile_pc == 999
 	
 	ren * var_*
-	ren var_${variable}_centile_pc income_centile_pc
-	ren var_${variable}_pc income_pc
+	ren var_${income}_centile_pc income_centile_pc
+	ren var_${income}_pc income_pc
 	
 	reshape long var_, i(income_centile_pc) j(variable, string)
 	ren var_ value_
@@ -325,13 +369,59 @@ forvalues scenario = 1/$numscenarios {
 
 export excel "$xls_out", sheet(Marginal) first(variable) sheetreplace 
 
+/*-------------------------------------------------------/
+	5. Coverage
+/-------------------------------------------------------*/
+	
+forvalues scenario = 1/$numscenarios {
+	
+	*local scenario = 1
+	import excel "$xls_sn", sheet("all${proj_`scenario'}") firstrow clear 
+	
+	keep if measure=="coverage" 
+	gen keep = 0
+
+	global policy2 	""
+	foreach var in $policy {
+		replace keep = 1 if variable == "`var'_pc"
+		global policy2	"$policy2 v_`var'_pc_${income}" 
+	}	
+	keep if keep ==1 
+	
+	replace variable=variable+"_ymp" if deciles_pc!=.
+	replace variable=variable+"_yd" if deciles_pc==.
+
+	egen decile=rowtotal(yd_deciles_pc deciles_pc)
+
+	keep decile variable value
+	
+	rename value v_
+
+	reshape wide v_, i(decile) j(variable) string
+	drop if decile ==0
+	
+	keep decile *_${income}
+	gen scenario = `scenario'
+	order scenario decile $policy2
+	ren (*) (scenario decile $policy)
+	
+	tempfile cov_`scenario'
+	save `cov_`scenario'', replace
+	
+}	
+
+clear
+forvalues scenario = 1/$numscenarios {
+	append using `cov_`scenario''
+}
+
+export excel "$xls_out", sheet(Coverage) first(variable) sheetmodify 
+
+
 
 /*-------------------------------------------------------/
-	7. Poverty and Inequality - Compare Scenarios
+	6. Poverty and Inequality - Compare Scenarios
 /-------------------------------------------------------*/
-
-	global variable 	"yc" // Only one
-	global reference 	"zref" // Only one
 	
 forvalues scenario = 1/$numscenarios {
 	
@@ -340,13 +430,13 @@ forvalues scenario = 1/$numscenarios {
 	* Total values
 	local len : word count $policy
 	
-	sum value if measure == "fgt0" & variable == "${variable}_pc" & reference == "$reference"
+	sum value if measure == "fgt0" & variable == "${income2}_pc" & reference == "$reference"
 	global pov0 = r(mean)
 
-	sum value if measure == "fgt1" & variable == "${variable}_pc" & reference == "$reference"
+	sum value if measure == "fgt1" & variable == "${income2}_pc" & reference == "$reference"
 	global pov1 = r(mean)
 	
-	sum value if measure == "gini" & variable == "${variable}_pc"
+	sum value if measure == "gini" & variable == "${income2}_pc"
 	global gini1 = r(mean)
 	
 	
@@ -370,7 +460,7 @@ forvalues scenario = 1/$numscenarios {
 	append using `pov_`scenario''
 }
 
-export excel "$xls_out", sheet(Poverty) first(variable) sheetmodify 
+export excel "$xls_out", sheet(Poverty) first(variable) sheetreplace 
 
 
 scalar t2 = c(current_time)

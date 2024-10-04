@@ -40,9 +40,9 @@ if "`c(username)'"=="gabriellombomoreno" {
 	global numscenarios	3
 	global coutryscen	"MRT MRT MRT"	// Fill with the country of each simulation
 	
-	global proj_1		"v3_MRT_Ref" 
-	global proj_2		"v3_MRT_ElecRef"  
-	global proj_3		"v3_MRT_Compen" 
+	global proj_1		"Ref_MRT_2019" 
+	global proj_2		"v1_MRT_ElecReform"  
+	global proj_3		"v1_MRT_Elec_CM" 
 	global proj_4		"" 
 }
 

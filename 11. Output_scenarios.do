@@ -33,7 +33,7 @@ if $load_scenario == 0 & $save_scenario == 0 {
 	local indtax indtax_total excise_taxes TVA_direct TVA_indirect Tax_TVA
 	local inkind education_inKind Sante_inKind am_sesame am_moin5 am_cesarienne am_CMU_progs inktransf_total
 	local transfer dirtransf_total am_bourse am_subCMU rev_universel $prog_total
-	local subsidies subsidy_total subsidy_elec_direct subsidy_elec_indirect subsidy_fuel_direct subsidy_fuel_indirect subsidy_fuel subsidy_eau subsidy_eau_direct subsidy_eau_indirect /*subsidy_agric*/ subsidy_elec
+	local subsidies subsidy_total subsidy_elec subsidy_elec_direct subsidy_elec_indirect subsidy_fuel_direct subsidy_fuel_indirect subsidy_fuel subsidy_eau subsidy_eau_direct subsidy_eau_indirect /*subsidy_agric*/ subsidy_emel subsidy_emel_direct subsidy_emel_indirect subsidy_inag subsidy_inag_direct subsidy_inag_indirect
 	local income ymp yn yd yc yf /*depan*/ // before I have a local here but it presented some problems 
 	local concs `tax' `indtax' `transfer' `inkind' `income' `subsidies'
 	

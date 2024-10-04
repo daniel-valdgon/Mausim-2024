@@ -22,6 +22,8 @@
 *ssc install ereplace
 *net install gr0034.pkg
 
+set seed 123456789
+
 *-----  Bachas Informality - Recode coicop
 use "$data_sn/informality_Bachas_mean.dta", clear
 
@@ -131,7 +133,9 @@ import excel "$data_sn/IO_Matrix.xlsx", sheet("IO_matrix") firstrow clear
 	 
 local thefixed 		"8 9" 
 local sect_elec  	"8"
-	 	
+local sect_emel 	"1"
+
+ 	
 gen fixed=0
 foreach var of local thefixed {
 	replace fixed=1  if  sector==`var'
@@ -141,6 +145,12 @@ gen elec_sec=0
 foreach var of local sect_elec {
 	replace elec_sec=1  if  sector==`var'
 }
+
+gen emel_sec = 0
+foreach var of local sect_emel {
+	replace emel_sec=1  if  sector==`var'
+}
+
 	
 save "$presim/IO_Matrix.dta", replace
 

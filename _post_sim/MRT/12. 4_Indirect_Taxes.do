@@ -20,19 +20,19 @@ macro drop _all
 if "`c(username)'"=="gabriellombomoreno" {
 	
 	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/Mausim_2024"
-	global report "${path}/04. Reports/4. Indirect Taxes/2. Presentation/Figures"
+	global report 		"${path}/04. Reports/4. Indirect Taxes/2. Presentation/Figures"
 	
 	global thedo     	"${path}/02. Scripts"
 
 	global xls_out    	"${report}/Figures12_Indirect_Taxes.xlsx"
 	global xls_sn    	"${path}/03. Tool/SN_Sim_tool_VI_`c(username)'.xlsx"
 	
-	global numscenarios	4
-	global proj_1		"v3_MRT_Ref" 
-	global proj_2		"v3_MRT_NoExemp"  
-	global proj_3		"v3_MRT_NoExSomeFood" 
-	global proj_4		"v3_MRT_NoExFood"  
-	global proj_5		""  
+	global numscenarios	5
+	global proj_1		"Ref_MRT_2019" 
+	global proj_2		"v1_MRT_NoExemp"  
+	global proj_3		"v1_MRT_NoExempBut" 
+	global proj_4		"v1_MRT_NoExemp_CM"  
+	global proj_5		"v1_MRT_NoExBut_CM"  
 
 	
 	global country		"MRT"

@@ -171,7 +171,7 @@
 		
 	import excel "$xls_sn", sheet(Excises_raw) first clear
 		
-	keep Produit cat Taux codpr_read
+	keep Produit cat Taux codpr_read elas ref
 		
 	*replace Produit=lower(Produit)
 	levelsof cat, local (products)
@@ -182,7 +182,13 @@
 			
 		levelsof codpr_read if cat=="`p'", local(tholds_`p')
 		global codpr_read_`p' `tholds_`p''
-			
+		
+		levelsof elas if cat=="`p'", local(tholds_`p')
+		global elas_`p' `tholds_`p''
+		
+		levelsof ref if cat=="`p'", local(tholds_`p')
+		global ref_`p' `tholds_`p''		
+		
 		levelsof Produit if cat=="`p'", local(tholds_`p')
 		global prod_label_`p' `tholds_`p''		
 	}	

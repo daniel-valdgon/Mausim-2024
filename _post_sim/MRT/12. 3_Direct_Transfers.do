@@ -41,13 +41,13 @@ if "`c(username)'"=="gabriellombomoreno" {
 	
 	global numscenarios	7
 
-	global proj_1		"v3_MRT_Ref" 
-	global proj_2		"v1_MRT_NoTrans"  
-	global proj_3		"v1_MRT_UBI" 
-	global proj_4		"v4_MRT_Tekavoul" 
-	global proj_5		"v4_MRT_School" 
-	global proj_6		"v4_MRT_Elmaouna" 
-	global proj_7		"v4_MRT_FoodT" 
+	global proj_1		"Ref_MRT_2019" 
+	global proj_2		"Ref_MRT_2019"  
+	global proj_3		"Ref_MRT_2019" 
+	global proj_4		"v1_MRT_Tekavoul" 
+	global proj_5		"v1_MRT_School" 
+	global proj_6		"v1_MRT_Elmaouna" 
+	global proj_7		"v1_MRT_Food" 
 
 	global policy		"am_prog_1 am_prog_2 am_prog_3 am_prog_4"
 

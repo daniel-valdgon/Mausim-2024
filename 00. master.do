@@ -37,12 +37,9 @@ if "`c(username)'"=="gabriellombomoreno" {
 	global tool         "${path}/03. Tool" 
 	
 	global country 		"MRT"
-	global run_presim 	1		// 1 = run presim
+	global run_presim 	0		// 1 = run presim
 
 	{
-	*global xls_sn 		"${path}/03_Tool/policy_inputs/${country}/SN_Sim_tool_VI_${country}_ref.xlsx"
-	*global xls_out    	"${path}/03_Tool/SN_Sim_tool_VI_`c(username)'.xlsx"	
-		
 		local tool_gl substr("$path", strrpos("$path", "/")+1, length("$path"))
 		if `tool_gl' == "Regional_tool" {
 			global xls_sn 		"${tool}/policy_inputs/${country}/SN_Sim_tool_VI_${country}_ref.xlsx"
@@ -122,6 +119,7 @@ foreach f of local files{
 	 qui: cap run "$theado//`f'"
 }
 
+gab
 
 *===============================================================================
 // Run pre_simulation files (Only run once)
@@ -136,7 +134,7 @@ if ("$country" == "MRT" & $run_presim == 1) {
 	
 	qui: include "$thedo_pre/05. Spend_dta_purchases.do" 
 	
-	qui: include "$thedo_pre/07. Dataprep.do" 
+	qui: include "$thedo_pre/07. PMT.do" 
 
 	qui: include "$thedo_pre/07. Direct_transfer.do" 
 	

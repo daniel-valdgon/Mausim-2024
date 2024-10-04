@@ -68,7 +68,7 @@ gen ymp_pc=yd_pre
 	local Contributions 	"csh_css csh_ipm csh_mutsan" //(AGV) Note that csh_mutsan is created in 4.DirTransfers and not in 3.SSC (as it should). csp_ipr csp_fnr excluded because, in PDI, pension contributions are not included.
 	local DirectTransfers   "am_bourse am_subCMU rev_universel ${prog_total}"
 	
-	local subsidies         "subsidy_elec_direct subsidy_elec_indirect subsidy_fuel_direct subsidy_fuel_indirect subsidy_eau_direct subsidy_eau_indirect "
+	local subsidies         "subsidy_elec_direct subsidy_elec_indirect subsidy_fuel_direct subsidy_fuel_indirect subsidy_eau_direct subsidy_eau_indirect subsidy_emel_direct subsidy_emel_indirect subsidy_inag_direct subsidy_inag_indirect"
 	local Indtaxes 			"excise_taxes TVA_direct TVA_indirect"
 	local InKindTransfers	"education_inKind Sante_inKind am_sesame am_moin5 am_cesarienne" //(AGV) Note that  am_sesame am_moin5 am_cesarienne are created in the direct transfers file, but they act more like in kind transfers
 	local taxcs 			`Directaxes' `Indtaxes' `Contributions'
@@ -339,6 +339,12 @@ gen subsidy_elec_pc = subsidy_elec_direct_pc + subsidy_elec_indirect_pc
 gen subsidy_eau = subsidy_eau_direct + subsidy_eau_indirect
 gen subsidy_eau_pc = subsidy_eau_direct_pc + subsidy_eau_indirect_pc
 
+gen subsidy_emel = subsidy_emel_direct + subsidy_emel_indirect
+gen subsidy_emel_pc = subsidy_emel_direct_pc + subsidy_emel_indirect_pc
+
+gen subsidy_inag = subsidy_inag_direct + subsidy_inag_indirect
+gen subsidy_inag_pc = subsidy_inag_direct_pc + subsidy_inag_indirect_pc
+
 gen subsidy_fuel = subsidy_fuel_direct + subsidy_fuel_indirect
 gen subsidy_fuel_pc = subsidy_fuel_direct_pc + subsidy_fuel_indirect_pc
 
@@ -351,8 +357,8 @@ egen dirtransf_total_pc = rowtotal(`DirectTransfers_pc')
 egen sscontribs_total = rowtotal(`Contributions')
 egen sscontribs_total_pc = rowtotal(`Contributions_pc')
 
-gen subsidy_total = subsidy_elec + subsidy_fuel + subsidy_eau 
-gen subsidy_total_pc = subsidy_elec_pc + subsidy_fuel_pc + subsidy_eau_pc 
+gen subsidy_total = subsidy_elec + subsidy_fuel + subsidy_eau * subsidy_emel
+gen subsidy_total_pc = subsidy_elec_pc + subsidy_fuel_pc + subsidy_eau_pc + subsidy_emel_pc
 
 gen indtax_total = excise_taxes + Tax_TVA
 gen indtax_total_pc = excise_taxes_pc + Tax_TVA_pc
@@ -390,7 +396,7 @@ label var subsidy_fuel_indirect	"Effet Indirect Carb."
 label var subsidy_eau	"Subv. Eau"
 label var subsidy_eau_direct	"Effet Direct Eau"
 label var subsidy_eau_indirect	"Effet Indirect Eau"
-cap label var subsidy_agric	"Subv. Agricole"
+*cap label var subsidy_agric	"Subv. Agricole"
 label var indtax_total	"Taxes Indirectes"
 label var excise_taxes	"Droits d'Accise"
 label var Tax_TVA "TVA"

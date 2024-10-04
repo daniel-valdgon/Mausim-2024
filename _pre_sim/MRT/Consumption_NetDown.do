@@ -13,7 +13,7 @@
 *global country 		"MRT"
 *global presim       "${path}/01_data/2_pre_sim/${country}" 
    
-   
+set seed 123456789   
    
 noi dis "We want to take household purchases and remove the direct and indirect effects that VAT, to have on the final value."
 
@@ -367,8 +367,8 @@ gen subsidy_water_SY = 0
 gen subs1=0
 gen subs2=0
 
-replace subs1 = 140.3*consumption_electricite if type_client == 1
-replace subs2 = 105.9*consumption_electricite if type_client == 2
+replace subs1 = 140.3 * consumption_electricite if type_client == 1
+replace subs2 = 105.9 * consumption_electricite if type_client == 2
 
 gen subsidy_elec_SY = subs1+subs2
 drop subs1 subs2

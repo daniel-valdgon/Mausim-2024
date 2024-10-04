@@ -141,7 +141,7 @@ replace an_income_3 = 0 if tax_ind_3  == 0
 
 gen regime_3 = tax_ind_3
 
-keep hhid idind allow1_ind_* allow2_ind_* an_income_* tax_ind_* regime_* 
+keep hhid idind allow1_ind_* allow2_ind_* an_income_* tax_ind_* regime_* inc_imp2 inc_imp imp_rent
 
 
 save "$presim/02_Income_tax_input.dta", replace

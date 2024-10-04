@@ -64,7 +64,11 @@ forvalues j = 1/$n_excises_taux {
 	drop dum_`j'
 	
 	* Assing tax
-	gen double ex_`j' = dep_`j' * ${taux_ex_`j'}
+	if ($sin_beh ==1) gen double ex_`j' = dep_`j' * ${taux_ex_`j'} + dep_`j' * (${taux_ex_`j'} - ${ref_ex_`j'})*${elas_ex_`j'}
+	
+	if ($sin_beh ==0) gen double ex_`j' = dep_`j' * ${taux_ex_`j'}
+	
+	*gen double ex_`j' = dep_`j' * ${taux_ex_`j'}
 	
 	* Assign label
 	label var ex_`j' "Excise on ${prod_label_ex_`j'}"
