@@ -30,7 +30,7 @@ Check new poverty estimates
 
 use "$presim/01_menages.dta", clear
 
-foreach var in csh_mutsan am_bourse am_subCMU am_sesame am_moin5 am_cesarienne  {
+foreach var in csh_mutsan am_bourse am_subCMU am_sesame am_moin5 am_cesarienne Sante_inKind {
 	gen `var'=0
 } 
 

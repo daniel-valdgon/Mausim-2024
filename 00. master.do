@@ -119,8 +119,6 @@ foreach f of local files{
 	 qui: cap run "$theado//`f'"
 }
 
-gab
-
 *===============================================================================
 // Run pre_simulation files (Only run once)
 *===============================================================================
@@ -207,6 +205,12 @@ qui: include "$thedo/07. Excise_taxes.do"
 *-------------------------------------
 
 qui: include "$thedo/08. Indirect_taxes.do"
+
+*-------------------------------------
+// 9. Inkind Transfers
+*-------------------------------------
+
+qui: include "$thedo/09. InKind_Transfers.do"
 
 *-------------------------------------
 // 10. Final income aggregation

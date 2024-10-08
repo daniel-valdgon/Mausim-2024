@@ -23,7 +23,7 @@ local dirtr			"dirtransf_total am_prog_1 am_prog_2 am_prog_3 am_prog_4"
 local dirtax		"dirtax_total income_tax_1 income_tax_2 income_tax_3"
 local sub			"subsidy_total subsidy_elec_direct subsidy_elec_indirect subsidy_emel subsidy_emel_direct subsidy_emel_indirect"
 local indtax		"indtax_total excise_taxes Tax_TVA TVA_direct TVA_indirect"
-local inktr			"inktransf_total"
+local inktr			"inktransf_total education_inKind"
 
 * Gabriel
 if "`c(username)'"=="gabriellombomoreno" {
@@ -36,7 +36,7 @@ if "`c(username)'"=="gabriellombomoreno" {
 	global xls_sn    	"${path}/03. Tool/SN_Sim_tool_VI_`c(username)'.xlsx"
 	
 	* Set Parameters
-	global numscenarios	3
+	global numscenarios	1
 	
 	global proj_1		"Ref_MRT_2019" 
 	global proj_2		"v1_MRT_ElecReform"
@@ -44,9 +44,9 @@ if "`c(username)'"=="gabriellombomoreno" {
 	global proj_4		"RevRecSinGoods"
 	global proj_5		"DoubleSinGoodsBR"
 
-	global policy		"subsidy_elec subsidy_elec_direct subsidy_elec_indirect"	
+	global policy		"`inktr'"	
 	
-	global income		"yd" // ymp, yn, yd, yc, yf
+	global income		"yc" // ymp, yn, yd, yc, yf
 	global income2		"yf"
 	global reference 	"zref" // Only one
 }
@@ -69,10 +69,28 @@ cap run "$theado//_ebin.ado"
 	0. Validation and Assumptions
 /-------------------------------------------------------*/
 
+use "$presim/07_educ.dta", clear
+
+merge m:1 hhid using "$presim/01_menages.dta" , nogen keepusing(hhweight hhsize) 
+
+tabm ben* [iw = hhweight], m
+
+*----- First option
+
+use "$data_sn/Datain/individus_2019.dta", clear
+		
+ren hid hhid
+	
+keep hhid A1 A2 A3 C4*
+
+merge m:1 hhid using "$presim/01_menages.dta", keep(3) keepusing(hhweight hhsize)
+
+tab C4N [iw = hhweight]
+
 /*-------------------------------------------------------/
 	1. Names
 /-------------------------------------------------------*/
-
+gab
 *----- Scenarios
 forvalues scenario = 1/$numscenarios {
 	
@@ -266,6 +284,7 @@ export excel "$xls_out", sheet(Incidence) first(variable) sheetmodify cell(S1)
 
 forvalues scenario = 1/$numscenarios {
 	
+	local scenario 1
 	import excel "$xls_sn", sheet("all${proj_`scenario'}") firstrow clear 
 	
 	* Total values
