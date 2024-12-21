@@ -141,6 +141,46 @@ tempfile io_ind_elec
 save `io_ind_elec', replace
 
 
+************************************************************************************/
+noi dis as result " 1. Subvention directe Fuel                        "
+************************************************************************************
+
+use "$presim/08_subsidies_fuel.dta", clear
+
+rename sub_fuel subsidy_fuel_direct
+
+rename sub_gasoline subsidy_f1_direct 
+rename sub_gasoil subsidy_f2_direct
+rename sub_lpg subsidy_f3_direct
+
+tempfile Fuel_subsidies_direct_hhid
+save `Fuel_subsidies_direct_hhid', replace
+
+************************************************************************************/
+noi dis as result " 2. Subvention indirecte Fuel                       "
+************************************************************************************
+
+use "$presim/IO_Matrix.dta", clear 
+
+global subsidy_shock = 3.3/100 * (0.0779 + 0.1273)/2
+
+*Shock
+gen shock = $subsidy_shock if fuel_sec==1
+
+replace shock=0  if shock==.
+
+*Indirect effects 
+des sect_*, varlist 
+local list "`r(varlist)'"
+	
+costpush `list', fixed(fixed) priceshock(shock) genptot(fuel_tot_shock) genpind(fuel_ind_shock) fix
+	
+keep sector fuel_ind_shock fuel_tot_shock fuel_ind_shock fuel_tot_shock
+	
+tempfile io_ind_fuel
+save `io_ind_fuel', replace
+
+
 
 ************************************************************************************/
 noi dis as result " 1. Subvention directe Food - EMEL                          "
@@ -160,22 +200,16 @@ tempfile Agric_subsidies_direct_hhid
 save `Agric_subsidies_direct_hhid', replace
 
 
-
-
-
-
 ************************************************************************************/
 noi dis as result " 2. Subvention indirecte à EMEL                       "
 ************************************************************************************
 
 use "$presim/IO_Matrix.dta", clear 
 
-global subsidy_shock_elec = (145 - 70) / 145 * 0.0817
-
-di $subsidy_shock_elec
+global subsidy_shock_elec = (145 - 70) / 145 * 0.1498
 
 *Shock
-gen shock = $subsidy_shock_elec if emel_sec==1
+gen shock = $subsidy_shock if emel_sec==1
 replace shock=0  if shock==.
 
 *Indirect effects 
@@ -201,17 +235,19 @@ save `io_ind_agric', replace
 // Adding indirect effect to database and expanding direct effect per product (codpr)
 use "$presim/05_netteddown_expenses_SY.dta", clear 
 
+keep hhid codpr sector pourcentage pondera_informal achats_net achats_net_excise informal_purchase achat_gross 
+
 merge m:1 hhid codpr using "$presim/08_subsidies_elect.dta", nogen keepusing(codpr_elec) keep(master match)
 
 merge m:1 hhid using `Elec_subsidies_direct_hhid', nogen assert(using matched) keep(matched)
 merge m:1 hhid using `Agric_subsidies_direct_hhid', nogen assert(using matched) keep(matched)
+merge m:1 hhid using `Fuel_subsidies_direct_hhid', nogen assert(using matched) keep(matched)
 
-*merge m:1 hhid using `Water_subsidies_direct_hhid', nogen assert(using matched) keep(matched)
 
 merge m:1 sector using `io_ind_elec', nogen assert(using matched) keep(matched)
 merge m:1 sector using `io_ind_agric', nogen assert(using matched) keep(matched)
+merge m:1 sector using `io_ind_fuel', nogen assert(using matched) keep(matched)
 
-*merge m:1 sector using `io_ind_eau', nogen assert(using matched) keep(matched)
 
 
 if $devmode== 1 {
@@ -224,12 +260,11 @@ use "$presim/Subsidies_check_correct_netdown.dta", clear
 replace subsidy_elec_direct = 0 if codpr_elec!=1
 replace subsidy_elec_direct = subsidy_elec_direct * pourcentage * pondera_informal
 
-
 *replace subsidy_eau_direct = 0 if codpr!=332
 *replace subsidy_eau_direct = subsidy_eau_direct*pourcentage*pondera_informal
 
 *gen achats_sans_subs_dir = achats_net - subsidy_fuel_direct - subsidy_elec_direct - subsidy_eau_direct
-gen achats_sans_subs_dir = achats_net - subsidy_elec_direct - subsidy_emel_direct - subsidy_inag_direct
+gen achats_sans_subs_dir = achats_net - subsidy_elec_direct - subsidy_emel_direct - subsidy_inag_direct // - subsidy_fuel_direct
 
 
 if $asserts_ref2018 == 1{
@@ -243,11 +278,11 @@ if $asserts_ref2018 == 1{
 gen subsidy_elec_indirect = achats_net * elec_ind_shock
 gen subsidy_emel_indirect = achats_net * emel_ind_shock 
 gen subsidy_inag_indirect = achats_net * inag_ind_shock 
-*gen subsidy_eau_indirect  = achats_net * eau_ind_shock
+gen subsidy_fuel_indirect = achats_net * fuel_ind_shock
 
 *gen achats_sans_subs = achats_sans_subs_dir - subsidy_fuel_indirect - subsidy_elec_indirect - subsidy_eau_indirect
 
-gen achats_sans_subs = achats_sans_subs_dir - subsidy_elec_indirect - subsidy_emel_indirect - subsidy_inag_indirect
+gen achats_sans_subs = achats_sans_subs_dir - subsidy_elec_indirect - subsidy_emel_indirect - subsidy_inag_indirect // - subsidy_fuel_indirect
 
 
 if $asserts_ref2018 == 1{
@@ -266,12 +301,12 @@ save `Subsidies_verylong'
 
 
 * Create variables in cero
-foreach var in subsidy_fuel_direct subsidy_fuel_indirect subsidy_eau_direct subsidy_eau_indirect {
+foreach var in subsidy_eau_direct subsidy_eau_indirect {
 	gen `var'=0
 }
 
 *Finally, we are only interested in the per-household amounts, so we will collapse the database:
-collapse (sum) subsidy_fuel_direct subsidy_fuel_indirect subsidy_elec_direct subsidy_elec_indirect subsidy_eau_direct subsidy_eau_indirect (mean) subsidy_emel_direct subsidy_emel_indirect subsidy_inag_direct subsidy_inag_indirect, by(hhid) 
+collapse (sum) subsidy_elec_direct subsidy_elec_indirect subsidy_eau_direct subsidy_eau_indirect (mean) subsidy_emel_direct subsidy_emel_indirect subsidy_inag_direct subsidy_inag_indirect subsidy_fuel_direct subsidy_fuel_indirect subsidy_f1_direct subsidy_f2_direct subsidy_f3_direct, by(hhid) 
 
 *merge 1:1 hhid using `Agricultural_subsidies', nogen keepusing(subsidy_agric) 
 

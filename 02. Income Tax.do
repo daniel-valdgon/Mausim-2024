@@ -9,6 +9,8 @@
 
 use  "$presim/02_Income_tax_input.dta", replace 
 
+keep hhid allow* an_income_* tax_ind_* regime_*
+
 *------ Allowances PIT
 
 local i = 1
@@ -50,8 +52,6 @@ forvalues i = 1/`n1' {
 	forvalues j = 1/`n2' {
 
 		local var2 : word `j' of ${all_regimes}
-
-
 
 		foreach t of global tholds`var1'_`var2' {
 					

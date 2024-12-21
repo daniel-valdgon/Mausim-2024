@@ -134,6 +134,7 @@ import excel "$data_sn/IO_Matrix.xlsx", sheet("IO_matrix") firstrow clear
 local thefixed 		"8 9" 
 local sect_elec  	"8"
 local sect_emel 	"1"
+local sect_fuel 	"9 12"
 
  	
 gen fixed=0
@@ -151,6 +152,10 @@ foreach var of local sect_emel {
 	replace emel_sec=1  if  sector==`var'
 }
 
+gen fuel_sec = 0
+foreach var of local sect_fuel {
+	replace fuel_sec=1  if  sector==`var'
+}
 	
 save "$presim/IO_Matrix.dta", replace
 

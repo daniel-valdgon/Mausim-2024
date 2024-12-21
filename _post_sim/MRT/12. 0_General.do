@@ -32,26 +32,31 @@ if "`c(username)'"=="gabriellombomoreno" {
 	*global report 		"${path}/04. Reports/7. Summary/2. Presentation/Figures"
 	global thedo     	"${path}/02. Scripts"
 
-	global xls_out		"${path}/03. Tool/General_Results.xlsx"
+	global xls_out		"${path}/03. Tool/General_Results_yd.xlsx"
 	global xls_sn    	"${path}/03. Tool/SN_Sim_tool_VI_`c(username)'.xlsx"
 	
 	* Set Parameters
-	global numscenarios	3
+	global numscenarios	1
 	
-	global proj_1		"Ref_MRT_2019" 
-	global proj_2		"v1_MRT_ElecReform"
-	global proj_3		"v2_MRT_Elec_CM"  
-	global proj_4		"RevRecSinGoods"
-	global proj_5		"DoubleSinGoodsBR"
+	global proj_1		"F3_MRT_Notes" 
+	global proj_2		"f3_inkind"
+	global proj_3		""  
+	global proj_4		""
+	global proj_5		""
 
-	global policy		"subsidy_elec subsidy_elec_direct subsidy_elec_indirect"	
+	*global policy		"income_tax_1 income_tax_3 ss_contribs_total am_prog_1 am_prog_2 am_prog_3 am_prog_4 ss_ben_sa"	
+	global policy		"excise_taxes CD_direct Tax_TVA subsidy_elec subsidy_fuel subsidy_emel_direct subsidy_inag_direct am_educ_1 am_educ_2 am_educ_3 am_educ_4 am_educ_7 am_health"	
+
 	
 	global income		"yd" // ymp, yn, yd, yc, yf
 	global income2		"yf"
 	global reference 	"zref" // Only one
 }
 
-	global allpolicy	"dirtax_total sscontribs_total dirtransf_total subsidy_total indtax_total inktransf_total" 
+	*global allpolicy	"ss_contrib_pub ss_contrib_pri income_tax_1 income_tax_3 am_prog_1 am_prog_2 am_prog_3 am_prog_4 ss_ben_old ss_ben_other" 
+	
+	* excise_taxes CD_direct Tax_TVA subsidy_elec subsidy_fuel subsidy_emel_direct subsidy_inag_direct am_educ_1 am_educ_2 am_educ_3 am_educ_4 am_educ_7 am_health
+	
 	global data_sn 		"${path}/01. Data/1_raw/MRT"    
 	global presim       "${path}/01. Data/2_pre_sim/MRT"
 	global data_out    	"${path}/01. Data/4_sim_output"
@@ -98,7 +103,7 @@ export excel "$xls_out", sheet(Scenarios) first(variable) sheetreplace cell(A1)
 /*-------------------------------------------------------/
 	2. Netcashflow
 /-------------------------------------------------------*/
-
+/*
 forvalues scenario = 1/$numscenarios {
 
 	import excel "$xls_sn", sheet("all${proj_`scenario'}") firstrow clear 
@@ -144,7 +149,7 @@ forvalues scenario = 1/$numscenarios {
 
 export excel "$xls_out", sheet(Netcash) first(variable) sheetmodify cell(A1)
 
-
+*/
 /*-------------------------------------------------------/
 	2. Relative Incidence - Boxplot
 /-------------------------------------------------------*/
@@ -203,7 +208,7 @@ forvalues scenario = 1/$numscenarios {
 	append using `inc_`scenario''
 }
 
-export excel "$xls_out", sheet(Incidence) first(variable) sheetmodify cell(A1)
+export excel "$xls_out", sheet(Rel_Incidence) first(variable) sheetmodify cell(A1)
 
 /*-------------------------------------------------------/
 	3. Absolute Incidence
@@ -257,7 +262,7 @@ forvalues scenario = 1/$numscenarios {
 	append using `inc_`scenario''
 }
 
-export excel "$xls_out", sheet(Incidence) first(variable) sheetmodify cell(S1)
+export excel "$xls_out", sheet(Ab_Incidence) first(variable) sheetmodify cell(A1)
 	
 	
 /*-------------------------------------------------------/

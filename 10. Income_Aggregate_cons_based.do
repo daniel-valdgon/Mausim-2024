@@ -30,6 +30,8 @@ Check new poverty estimates
 
 use "$presim/01_menages.dta", clear
 
+keep hhid hhsize hhweight dtot zref
+
 foreach var in csh_mutsan am_bourse am_subCMU am_sesame am_moin5 am_cesarienne Sante_inKind {
 	gen `var'=0
 } 
@@ -39,23 +41,24 @@ foreach var in csh_mutsan am_bourse am_subCMU am_sesame am_moin5 am_cesarienne S
 gen double yd_pre=round(dtot/hhsize,0.01)
 
 if $devmode== 1 {
-merge 1:1 hhid using "${tempsim}/income_tax_collapse.dta" , nogen
-merge 1:1 hhid using "${tempsim}/social_security_contribs.dta" , nogen
-merge 1:1 hhid using "${tempsim}/Direct_transfers.dta"  , nogen
-merge 1:1 hhid using "${tempsim}/Subsidies" , nogen
-merge 1:1 hhid using "${tempsim}/Excise_taxes.dta" , nogen
-merge 1:1 hhid using "${tempsim}/VAT_taxes.dta", nogen 
-merge 1:1 hhid using "${tempsim}/Transfers_InKind.dta" , nogen
-
+	merge 1:1 hhid using "${tempsim}/social_security_contribs.dta", nogen keepusing(hhid ss*)
+	merge 1:1 hhid using "${tempsim}/income_tax_collapse.dta", nogen keepusing(hhid income_tax_*)
+	merge 1:1 hhid using "${tempsim}/Direct_transfers.dta", nogen keepusing(hhid rev_universel am_prog*)
+	merge 1:1 hhid using "${tempsim}/CustomDuties_taxes", nogen keepusing(hhid CD*)
+	merge 1:1 hhid using "${tempsim}/Subsidies", nogen keepusing(hhid subsidy*)
+	merge 1:1 hhid using "${tempsim}/Excise_taxes.dta", nogen keepusing(hhid excise_taxes)
+	merge 1:1 hhid using "${tempsim}/VAT_taxes.dta", nogen keepusing(hhid TVA* achats_avec_VAT)
+	merge 1:1 hhid using "${tempsim}/Transfers_InKind.dta", nogen keepusing(hhid health_inKind am_educ* education* am_health*)
 }
+
 else {
-merge 1:1 hhid using `income_tax_collapse' , nogen
-merge 1:1 hhid using `social_security_contribs' , nogen
-merge 1:1 hhid using `Direct_transfers'  , nogen
-merge 1:1 hhid using `Subsidies' , nogen
-merge 1:1 hhid using `Excise_taxes' , nogen
-merge 1:1 hhid using `VAT_taxes' , nogen
-merge 1:1 hhid using `Transfers_InKind' , nogen
+	merge 1:1 hhid using `social_security_contribs' , nogen
+	merge 1:1 hhid using `income_tax_collapse' , nogen
+	merge 1:1 hhid using `Direct_transfers'  , nogen
+	merge 1:1 hhid using `Subsidies' , nogen
+	merge 1:1 hhid using `Excise_taxes' , nogen
+	merge 1:1 hhid using `VAT_taxes' , nogen
+	merge 1:1 hhid using `Transfers_InKind' , nogen
 }
 
 *All policies, regarless of them being taxes or subsidies, should be positive 
@@ -63,17 +66,21 @@ merge 1:1 hhid using `Transfers_InKind' , nogen
 *Gross market income that is going to be used as basis of all calculations:
 *merge 1:1 hhid using "$presim/gross_ymp_pc.dta" , nogen
 gen ymp_pc=yd_pre
+	
 
-	local Directaxes 		"income_tax_1 income_tax_2 income_tax_3"
-	local Contributions 	"csh_css csh_ipm csh_mutsan" //(AGV) Note that csh_mutsan is created in 4.DirTransfers and not in 3.SSC (as it should). csp_ipr csp_fnr excluded because, in PDI, pension contributions are not included.
-	local DirectTransfers   "am_bourse am_subCMU rev_universel ${prog_total}"
-	
-	local subsidies         "subsidy_elec_direct subsidy_elec_indirect subsidy_fuel_direct subsidy_fuel_indirect subsidy_eau_direct subsidy_eau_indirect subsidy_emel_direct subsidy_emel_indirect subsidy_inag_direct subsidy_inag_indirect"
-	local Indtaxes 			"excise_taxes TVA_direct TVA_indirect"
-	local InKindTransfers	"education_inKind Sante_inKind am_sesame am_moin5 am_cesarienne" //(AGV) Note that  am_sesame am_moin5 am_cesarienne are created in the direct transfers file, but they act more like in kind transfers
+	local Directaxes 		"${Directaxes}"
+	local Contributions 	"${Contributions}" 
+	local DirectTransfers   "${DirectTransfers}"
+	local Subsidies         "${Subsidies}"
+	local Indtaxes 			"${Indtaxes}"
+	local InKindTransfers	"${InKindTransfers}" 
+		
 	local taxcs 			`Directaxes' `Indtaxes' `Contributions'
-	local transfers         `DirectTransfers' `subsidies' `InKindTransfers'
-	
+	local transfers         `DirectTransfers' `Subsidies' `InKindTransfers'
+		
+		
+	di "`Directaxes' /// `Contributions' /// `DirectTransfers' /// `Subsidies' /// `Indtaxes' /// `InKindTransfers'"
+
 
 	foreach i in `Directaxes' `Contributions' `DirectTransfers'  `Indtaxes' `subsidies' `InKindTransfers' {
 		replace `i'=0 if `i'==.
@@ -91,7 +98,9 @@ gen ymp_pc=yd_pre
 		local `listvar'_pc ""
 		foreach var of local `listvar' {
 			local `listvar'_pc "``listvar'_pc' `var'_pc"
+			di "`listvar'_pc"
 		}
+
 	}
 	
 *change taxes and contributions to negatives (only _pc to calculate income definitions)
@@ -99,7 +108,6 @@ gen ymp_pc=yd_pre
 	foreach i in `Indtaxes_pc' `Directaxes_pc' `Contributions_pc' {
 		replace `i'=-`i'
 	}
-	
 	
 *************************************** NET MARKET INCOME  ---STARTING POINT:  MARKET INCOME CALCULATED IN THE GROSSING UP
  
@@ -251,51 +259,44 @@ replace ipc_month_yr_svy_17=1.01598285 if month==7
 
 if ("$country" == "MRT") {
 
-* MRT: i2017 - 1.05, i2018 - 0.65, i2019 - 0.98. ccpi_a
-* MRT: i2017 - 3.0799999,	i2018 - 4.2035796. fcpi_a
-* MRT: i2017 - 2.269, i2018 - 3.07. hcpi_a
-* MRT Inflation according to WorldBank Data Dashboard. 2017 - 2.3, 2018 - 3.1
-* Country specific...
+	* MRT: i2017 - 1.05, i2018 - 0.65, i2019 - 0.98. ccpi_a
+	* MRT: i2017 - 3.0799999,	i2018 - 4.2035796. fcpi_a
+	* MRT: i2017 - 2.269, i2018 - 3.07. hcpi_a
+	* MRT Inflation according to WorldBank Data Dashboard. 2017 - 2.3, 2018 - 3.1
+	* Country specific...
 
-local ppp17 = 12.4452560424805
-local inf17 = 2.3
-local inf18 = 3.1
-local inf19 = 2.3
-cap drop line_1 line_2 line_3
-gen line_1=2.15*365*`ppp17'*`inf17'*`inf18'*`inf19'
-gen line_2=3.65*365*`ppp17'*`inf17'*`inf18'*`inf19'
-gen line_3=6.85*365*`ppp17'*`inf17'*`inf18'*`inf19'
+	local ppp17 = 12.4452560424805
+	local inf17 = 2.3
+	local inf18 = 3.1
+	local inf19 = 2.3
+	cap drop line_1 line_2 line_3
+	gen line_1=2.15*365*`ppp17'*`inf17'*`inf18'*`inf19'
+	gen line_2=3.65*365*`ppp17'*`inf17'*`inf18'*`inf19'
+	gen line_3=6.85*365*`ppp17'*`inf17'*`inf18'*`inf19'
 
-foreach var in /*line_1 line_2 line_3*/ yd_pc yc_pc  {
-	gen test=1 if `var'<=zref
-	recode test .= 0
-	*noi tab test [iw=hhweight*hhsize]
-	drop test
-}
+	foreach var in /*line_1 line_2 line_3*/ yd_pc yc_pc  {
+		gen test=1 if `var'<=zref
+		recode test .= 0
+		*noi tab test [iw=hhweight*hhsize]
+		drop test
+	}
 
 }
 
 if ("$country" == "GMB") {
 
-local ppp16 = 14.4826145172119  // PPP conversion factor, GDP (LCU per international $) 2016
-local inf17 = 2.3
-local inf18 = 3.1
-local inf19 = 2.3
-cap drop line_1 line_2 line_3
-gen line_1=2.15*365*`ppp16'
-gen line_2=3.65*365*`ppp16'
-gen line_3=6.85*365*`ppp16'
+	local ppp16 = 14.4826145172119  // PPP conversion factor, GDP (LCU per international $) 2016
+	local inf17 = 2.3
+	local inf18 = 3.1
+	local inf19 = 2.3
+	cap drop line_1 line_2 line_3
+	gen line_1=2.15*365*`ppp16'
+	gen line_2=3.65*365*`ppp16'
+	gen line_3=6.85*365*`ppp16'
 
-
-/*foreach var in /*line_1 line_2 line_3*/ yd_pc yc_pc  {
-	gen test=1 if `var'<=zref
-	recode test .= 0
-	noi tab test [iw=hhweight*hhsize]
-	drop test
-}
-*/
 
 }
+
 save "$data_out/output.dta", replace
 
 
@@ -324,18 +325,66 @@ gen depan=achats_avec_VAT
 gen depan_pc=depan/hhsize
 
 *Generate other measures not used in income calculations
-
 *gen income_tax_reduc_pc = income_tax_reduc/hhsize
 
+*----- Generate policy aggregations
 
-*Generate policy aggregations
+
+
+* Specific policy
+gen ss_contribs_total = ss_contrib_pri + ss_contrib_pub
+gen ss_contribs_total_pc = ss_contrib_pri_pc + ss_contrib_pub_pc
+
 
 gen Tax_TVA = TVA_direct + TVA_indirect
-gen Tax_TVA_pc = TVA_direct_pc+TVA_indirect_pc
+gen Tax_TVA_pc = TVA_direct_pc + TVA_indirect_pc
 
 gen subsidy_elec = subsidy_elec_direct + subsidy_elec_indirect
 gen subsidy_elec_pc = subsidy_elec_direct_pc + subsidy_elec_indirect_pc
 
+gen subsidy_fuel = subsidy_fuel_direct + subsidy_fuel_indirect
+gen subsidy_fuel_pc = subsidy_fuel_direct_pc + subsidy_fuel_indirect_pc
+
+gen subsidy_total = subsidy_elec + subsidy_fuel + subsidy_emel_direct + subsidy_inag_direct
+gen subsidy_total_pc = subsidy_elec_pc + subsidy_fuel_pc + subsidy_emel_direct_pc + subsidy_inag_direct_pc
+
+gen inktransf_educ = am_educ_1 + am_educ_2 + am_educ_3 + am_educ_4 + am_educ_7
+gen inktransf_educ_pc = am_educ_1_pc + am_educ_2_pc + am_educ_3_pc + am_educ_4_pc + am_educ_7_pc
+
+gen inktransf_health = am_health
+gen inktransf_health_pc = am_health_pc
+
+gen am_prog_sa = am_prog_1 + am_prog_2 + am_prog_3 + am_prog_4
+gen am_prog_sa_pc = am_prog_1_pc + am_prog_2_pc + am_prog_3_pc + am_prog_4_pc
+
+gen am_prog = am_prog_1 + am_prog_2 + am_prog_3 + am_prog_4
+gen am_prog_pc = am_prog_1_pc + am_prog_2_pc + am_prog_3_pc + am_prog_4_pc
+
+gen ss_ben_sa = ss_ben_old + ss_ben_other
+gen ss_ben_sa_pc = ss_ben_old_pc + ss_ben_other_pc
+
+
+* General policy
+egen dirtax_total = rowtotal(`Directaxes')
+egen dirtax_total_pc = rowtotal(`Directaxes_pc')
+
+egen dirtransf_total = rowtotal(`DirectTransfers')
+egen dirtransf_total_pc = rowtotal(`DirectTransfers_pc')
+
+egen sscontribs_total = rowtotal(`Contributions')
+egen sscontribs_total_pc = rowtotal(`Contributions_pc')
+
+*egen subsidy_total = rowtotal(`Subsidies')
+*egen subsidy_total_pc = rowtotal(`Subsidies_pc')
+
+egen indtax_total = rowtotal(`Indtaxes')
+egen indtax_total_pc = rowtotal(`Indtaxes_pc')
+
+egen inktransf_total = rowtotal(`InKindTransfers')
+egen inktransf_total_pc = rowtotal(`InKindTransfers_pc')
+
+
+/*
 gen subsidy_eau = subsidy_eau_direct + subsidy_eau_indirect
 gen subsidy_eau_pc = subsidy_eau_direct_pc + subsidy_eau_indirect_pc
 
@@ -363,55 +412,25 @@ gen subsidy_total_pc = subsidy_elec_pc + subsidy_fuel_pc + subsidy_eau_pc + subs
 gen indtax_total = excise_taxes + Tax_TVA
 gen indtax_total_pc = excise_taxes_pc + Tax_TVA_pc
 
-gen am_CMU_progs = am_sesame + am_moin5 + am_cesarienne
-gen am_CMU_progs_pc = am_sesame_pc + am_moin5_pc + am_cesarienne_pc
-
-gen inktransf_total = Sante_inKind + education_inKind + am_CMU_progs
-gen inktransf_total_pc = Sante_inKind_pc + education_inKind_pc + am_CMU_progs_pc
+gen inktransf_total = health_inKind + education_inKind
+gen inktransf_total_pc = health_inKind_pc + education_inKind_pc
+*/
 
 
-*Labeling policy variables
+*------- Per capita totals
+foreach i in `Directaxes' `Contributions' `DirectTransfers'  `Indtaxes' `subsidies' `InKindTransfers' {
+	
+}
 
-label var dirtax_total	"Impôts directs"
-label var income_tax_1	"Impôt sur le Revenu"
-label var income_tax_2	"Déductions et Quotient Familial"
-label var income_tax_3	"TRIMF"
-label var sscontribs_total	"Cotisations de Securité Sociale"
-label var csp_ipr	"Cotisation Retraite IPRES (DELETED)"
-label var csp_fnr	"Cotisation Retraite FNR (DELETED)"
-label var csh_css	"Risque Maladie et Allocation Familiale"
-label var csh_ipm	"Cotisation Santé à IPM"
-label var dirtransf_total	"Transferts directs"
-*label var am_BNSF	"BNSF"
-*label var am_Cantine	"Cantines Scolaires"
-label var am_bourse	"Bourse d'Éducation Universitaire"
-label var am_subCMU	"Assurance CMU"
-label var subsidy_total	"Subventions"
-label var subsidy_elec	"Subv. Électricité"
-label var subsidy_elec_direct	"Effet Direct Élec."
-label var subsidy_elec_indirect	"Effet Indirect Élec."
-label var subsidy_fuel	"Subv. Carburants"
-label var subsidy_fuel_direct	"Effet Direct Carb."
-label var subsidy_fuel_indirect	"Effet Indirect Carb."
-label var subsidy_eau	"Subv. Eau"
-label var subsidy_eau_direct	"Effet Direct Eau"
-label var subsidy_eau_indirect	"Effet Indirect Eau"
-*cap label var subsidy_agric	"Subv. Agricole"
-label var indtax_total	"Taxes Indirectes"
-label var excise_taxes	"Droits d'Accise"
-label var Tax_TVA "TVA"
-label var TVA_direct	"Effet Direct TVA"
-label var TVA_indirect	"Effet Indirect TVA"
-label var inktransf_total	"Transferts en nature"
-label var Sante_inKind	"Santé (en nature)"
-label var education_inKind	"Éducation (en nature)"
-label var am_CMU_progs	"Programmes CMU"
-label var am_sesame	"Plan Sésame"
-label var am_moin5	"Soins gratuits pour les enfants moins 5 ans"
-label var am_cesarienne	"Cesarienne gratuite"
+*------- Labels	Policy 
+foreach i in `Directaxes' `Contributions' `DirectTransfers'  `Indtaxes' `subsidies' `InKindTransfers' {
+	local var `i' 
+	*di "$`var'_lab"
+	label var `var' "$`var'_lab"
+	
+}
 
-
-local policylist `Directaxes' dirtax_total `Contributions' sscontribs_total `DirectTransfers' dirtransf_total `subsidies' subsidy_elec subsidy_fuel subsidy_eau subsidy_total `Indtaxes' Tax_TVA indtax_total `InKindTransfers' am_CMU_progs inktransf_total
+local policylist `Directaxes' dirtax_total `Contributions' ss_contribs_total `DirectTransfers' dirtransf_total am_prog_sa ss_ben_sa `subsidies' subsidy_elec subsidy_fuel subsidy_total `Indtaxes' Tax_TVA indtax_total `InKindTransfers' inktransf_educ inktransf_health inktransf_total
 
 foreach var of local policylist{
 	local labelle : variable label `var'

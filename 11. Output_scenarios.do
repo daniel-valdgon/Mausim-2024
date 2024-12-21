@@ -27,18 +27,24 @@ if $load_scenario == 0 & $save_scenario == 0 {
 	global sheetname "User_def_sce"
 }
 
-*Macros for household values 
-// This locals are different from those in dofile 1, please check that they contain what's needed. 	
-	local tax dirtax_total income_tax_1 income_tax_2 income_tax_3 /*csp_ipr csp_fnr*/ csh_css csh_ipm csh_mutsan new_poor old_poor sscontribs_total
-	local indtax indtax_total excise_taxes TVA_direct TVA_indirect Tax_TVA
-	local inkind education_inKind Sante_inKind am_sesame am_moin5 am_cesarienne am_CMU_progs inktransf_total
-	local transfer dirtransf_total am_bourse am_subCMU rev_universel $prog_total
-	local subsidies subsidy_total subsidy_elec subsidy_elec_direct subsidy_elec_indirect subsidy_fuel_direct subsidy_fuel_indirect subsidy_fuel subsidy_eau subsidy_eau_direct subsidy_eau_indirect /*subsidy_agric*/ subsidy_emel subsidy_emel_direct subsidy_emel_indirect subsidy_inag subsidy_inag_direct subsidy_inag_indirect
-	local income ymp yn yd yc yf /*depan*/ // before I have a local here but it presented some problems 
+*---- Macros for household values 
+
+		
+	local Directaxes 		"${Directaxes}"
+	local Contributions 	"${Contributions}" 
+	local DirectTransfers   "${DirectTransfers}"
+	local Subsidies         "${Subsidies}"
+	local Indtaxes 			"${Indtaxes}"
+	local InKindTransfers	"${InKindTransfers}" 
+
+	local tax dirtax_total `Directaxes' ss_contribs_total `Contributions'
+	local indtax indtax_total `Indtaxes' Tax_TVA
+	local inkind inktransf_total `InKindTransfers' inktransf_educ inktransf_health
+	local transfer dirtransf_total `DirectTransfers' am_prog_sa ss_ben_sa
+	local subsidies subsidy_total `Subsidies' subsidy_elec subsidy_fuel
+	local income ymp yn yd yc yf 
 	local concs `tax' `indtax' `transfer' `inkind' `income' `subsidies'
 	
-	
-
 *Macros at per-capita values 
 	foreach x in tax indtax inkind transfer income concs subsidies {
 		local `x'_pc
@@ -59,6 +65,8 @@ foreach rank in ymp yn yd yc yf {
 	
 	use "$data_out/output", clear
 
+	keep hhid `concs_pc' pondih *_centile_pc
+	
 	foreach x of local concs_pc {
 		covconc `x' [aw=pondih] , rank(`rank'_pc)	//gini and concentration coefficients
 		local _`x' = r(conc)
@@ -98,10 +106,13 @@ foreach rank in ymp yn yd yc yf {
 		*Netcash Position
 *===============================================================================
 
+
 {
 * net cash ymp
 
 	use "$data_out/output", clear
+	
+	keep hhid `concs_pc' pondih *_centile_pc deciles_pc 
 	
 	foreach x in `tax' `indtax'  {
 		gen share_`x'_pc= -`x'_pc/ymp_pc

@@ -30,6 +30,54 @@
 	global c:all globals
 	macro list c	
 	
+	
+	
+/*-------------------------------------------------------/
+	0. Policy Names
+/-------------------------------------------------------*/
+
+	*------ Policy
+	import excel "$xls_sn", sheet("Policy") firstrow clear
+
+	keep if varname != "."
+
+	* Policy names
+	levelsof varname, local(params)
+	foreach z of local params {
+		levelsof varlabel if varname=="`z'", local(val)
+		global `z'_lab `val'
+	}
+	
+	* Policy categories
+	gen order = _n
+	bysort category (order): gen count = _n
+	
+	keep category varname count
+	ren varname v_	
+	
+	reshape wide v_, i(category) j(count)		
+		
+	egen v = concat(v_*), punct(" ")	
+	gen globalvalue = strltrim(v)
+		
+	levelsof category, local(params)
+	foreach z of local params {
+		levelsof globalvalue if category=="`z'", local(val)
+		global `z'_A `val'
+	}
+	
+	drop v_1 v globalvalue
+	
+	egen v = concat(v_*), punct(" ")	
+	gen globalvalue = strltrim(v)
+		
+	levelsof category, local(params)
+	foreach z of local params {
+		levelsof globalvalue if category=="`z'", local(val)
+		global `z' `val'
+	}
+
+	
 /*-------------------------------------------------------/
 	2. Direct Taxes
 /-------------------------------------------------------*/
@@ -129,11 +177,16 @@
 	4. Indirect Taxes
 /-------------------------------------------------------*/
 	
-	*---------- VAT
+	*---------- Auxiliar - Sector - Product
 	import excel "$xls_sn", sheet("IO_percentage") firstrow clear
 	save "$presim/IO_percentage.dta", replace
-
 	
+	if ("$country" == "GMB") {
+		global sect_fixed ""
+	}
+		
+	
+	*---------- VAT
 	import excel "$xls_sn", sheet("TVA_aux_params") firstrow clear
 	levelsof globalname, local(globales)
 	foreach z of local globales {
@@ -141,10 +194,6 @@
 		global `z' `val'
 	}
 	
-	if ("$country" == "GMB") {
-		global sect_fixed ""
-	}
-		
 	if $TVA_simplified == 0{
 		import excel "$xls_sn", sheet("TVA_raw") firstrow clear
 		drop produit
@@ -167,6 +216,32 @@
 		}
 	}
 
+	*---------- Custom Duties
+
+	import excel "$xls_sn", sheet("CustomDuties_raw") firstrow clear
+	drop produit
+	drop if codpr==.
+	recode elasticities (.=0)
+	*tempfile VAT_original
+	*save `VAT_original'
+	
+	levelsof codpr, local(products)
+	global products "`products'"
+	foreach z of local products {
+		
+		levelsof rate          if codpr==`z', local(rate)
+		global cdrate_`z' `rate'
+		
+		*levelsof formelle     if codpr==`z', local(vatform)
+		*global vatform_`z' `vatform'
+		
+		levelsof imported     if codpr==`z', local(imported)
+		global cdimp_`z' `imported'
+		*levelsof elasticities if codpr==`z', local(vatelas)
+		*global vatelas_`z' `vatelas'
+	}
+
+	
 	*----------- Excises
 		
 	import excel "$xls_sn", sheet(Excises_raw) first clear
@@ -242,157 +317,34 @@
 	*--------- Water
 
 
+	
+/*-------------------------------------------------------/
+	9. Inkind Transfers
+/-------------------------------------------------------*/
 
+	import excel "$xls_sn", sheet(qhealth_raw) first clear
+		
+	levelsof location, local(category)
+	*global products "`products'"
+	foreach z of local category {
+		*di `z'
+		levelsof q_indexh          if location==`z', local(index)
+		global ink_qh_`z' `index'
+	}
+	
+	/*
+	import excel "$xls_sn", sheet(qeduc_raw) first clear
+		
+	levelsof location, local(category)
+	*global products "`products'"
+	foreach z of local category {
+		*di `z'
+		levelsof q_indexh          if location==`z', local(index)
+		global ink_qh_`z' `index'
+	}
+	*/
+	
 /*
-
-	*==================================================================================
-	dis "=================   Direct Taxes 	==============="
-	*==================================================================================
-
-	qui {
-
-	// 1.1. Contribution Globale Unique //
-
-	import excel "$xls_sn", sheet(DirTax_raw) first clear
-	destring min max rate plus other, replace 
-	replace min=-0.000001 if min<0
-	tempfile RGU
-	save `RGU', replace
-
-	forval regime=1/3{ //There are 3 regimes de la Contribution Global Unique
-		use `RGU', clear 
-		drop if min==. & max==.
-		drop if min==0 & max==0
-		tostring max, replace // this is a trick to work with infinte value in the globals
-		keep if Regime=="RGU`regime'"
-
-		drop if min==.
-		levelsof threshold, local(tholds)
-		global tholdsRGU`regime' "`tholds'"
-		foreach z of local tholds {
-			levelsof min  if threshold=="`z'", local(RGU`regime'min`z')
-			global RGU`regime'min`z' `RGU`regime'min`z''
-			levelsof max  if threshold=="`z'", local(RGU`regime'max`z') 
-			global RGU`regime'max`z' `RGU`regime'max`z''
-			levelsof rate if threshold=="`z'", local(RGU`regime'rate`z')
-			global RGU`regime'rate`z' `RGU`regime'rate`z''
-			levelsof plus if threshold=="`z'", local(RGU`regime'plus`z')	
-			global RGU`regime'plus`z' `RGU`regime'plus`z''
-		}
-		sum other
-		global RGU`regime'_floor `r(mean)'
-	}
-
-
-	// 1.2. Impôt sur le Revenu (R. du Bénéf. Réel N & S) //
-
-	use `RGU', clear 
-
-	keep if Regime=="IR"
-	replace max=. if max==0
-	tostring max, replace // this is a trick to work with infinte value in the globals
-	drop if min==.
-	ren other deductions // this was created to be able to apply a discount rate to the tax credits received by income bracket
-
-	levelsof threshold, local(tholds)
-	global tholdsIR "`tholds'"
-	foreach z of local tholds {
-		levelsof min  if threshold=="`z'", local(IRmin`z')
-		global IRmin`z' `IRmin`z''
-		levelsof max  if threshold=="`z'", local(IRmax`z') 
-		global IRmax`z' `IRmax`z''
-		levelsof rate if threshold=="`z'", local(IRrate`z')
-		global IRrate`z' `IRrate`z''
-		levelsof plus if threshold=="`z'", local(IRplus`z')	
-		global IRplus`z' `IRplus`z''
-		levelsof deductions if threshold=="`z'", local(deduc`z')
-		global deduc`z' `deduc`z''
-	}
-
-	use `RGU', clear 
-	keep if Regime=="IR_reelnormal"
-	levelsof min, local(min_reelnormal)	
-	global min_reelnormal `min_reelnormal'
-	levelsof rate, local(RSimpRate)
-	global RSimpRate `RSimpRate'
-
-
-	// 1.3. Parts points
-
-	use `RGU', clear 
-	keep if Regime=="Parts_raw"
-	ren other Part
-	tostring max, replace // this is a trick to work with infinte value in the globals
-	ren max cap
-
-	levelsof threshold, local(tholds)
-	global tholdsParts "`tholds'"
-	foreach z of local tholds {
-		levelsof Part  if threshold=="`z'", local(part_`z')
-		global part_`z' `part_`z''
-		levelsof cap  if threshold=="`z'", local(cap_`z')
-		global Cap_`z' `cap_`z''
-	}
-
-
-
-	use `RGU', clear 
-
-	keep if Regime=="Parts_reduction" // since we integrate parts to the same excel file I am adjusting the name to previous names to do not mees up with the do-file 
-	ren min Minimum
-	ren max Maximum
-	ren rate Taux
-	ren other Nombre_parts 
-
-	levelsof threshold, local(tholds)
-	global tholdsNombreParts "`tholds'"
-	foreach z of local tholds {
-		levelsof Minimum  if threshold=="`z'", local(Partsmin`z')
-		global Partsmin`z' `Partsmin`z''
-		levelsof Maximum  if threshold=="`z'", local(Partmax`z') 
-		global Partmax`z' `Partmax`z''
-		levelsof Taux if threshold=="`z'", local(Partrate`z')
-		global Partrate`z' `Partrate`z''
-		levelsof Nombre_parts if threshold=="`z'", local(Part_nombre`z')
-		global Part_nombre`z' `Part_nombre`z''
-	}
-
-
-	use `RGU', clear 
-
-	keep if Regime=="IR_non"
-	tostring max, replace
-	levelsof threshold, local(tholds)
-	global tholdsIR_non "`tholds'"
-	foreach z of local tholds {
-		levelsof max  if threshold=="`z'", local(IR_nonmax_`z')
-		global IR_nonmax_`z' `IR_nonmax_`z''
-		levelsof min  if threshold=="`z'", local(IR_nonmin_`z')
-		global IR_nonmin_`z' `IR_nonmin_`z''
-		levelsof rate  if threshold=="`z'", local(IR_nonrate_`z')
-		global IR_nonrate_`z' `IR_nonrate_`z''
-	}
-	
-	use `RGU', clear 
-	
-	keep if Regime=="TRIMF"
-	replace max=. if max==0
-	tostring max, replace // this is a trick to work with infinte value in the globals
-	drop if min==.
-	levelsof threshold, local(tholds)
-	global tholdsTRIMF "`tholds'"
-	foreach z of local tholds {
-		levelsof max  if threshold=="`z'", local(TRIMFmax`z')
-		global TRIMFmax`z' `TRIMFmax`z''
-		levelsof min  if threshold=="`z'", local(TRIMFmin`z')
-		global TRIMFmin`z' `TRIMFmin`z''
-		levelsof rate  if threshold=="`z'", local(TRIMFtarif`z')
-		global TRIMFtarif`z' `TRIMFtarif`z''
-	}
-
-	}
-
-
 	*==================================================================================
 	dis "=================   Social Security Contributions	==============="
 	*==================================================================================
@@ -415,53 +367,6 @@
 
 		  
 	}
-
-
-
-
-
-	*==================================================================================
-	dis "==============                Direct Transfers     				==========="
-	*==================================================================================
-
-
-		****  CMU & Health
-		
-		import excel "$xls_sn", sheet(CMU_raw) first clear
-		preserve
-		drop if Programme =="Assurance_maladie"
-		levelsof Programme, local(CMU) clean
-		global Programme_CMU `CMU'
-		foreach z of local CMU {
-			levelsof Beneficiaires if Programme=="`z'", local(CMU_b_`z')
-			global CMU_b_`z' `CMU_b_`z''
-			levelsof Montant if Programme=="`z'", local(CMU_m_`z')
-			global CMU_m_`z' `CMU_m_`z''
-		}
-		restore
-		keep if Programme =="Assurance_maladie"
-		levelsof Programme, local(Programme) clean
-		global Sante `Programme'
-		foreach z of local Programme{
-			levelsof Montant if Programme=="`z'", local(Montant_`z')
-			global Montant_`z' `Montant_`z''
-			
-		}
-
-		**** Education
-
-		preserve
-		import excel "$xls_sn", sheet(education_raw) first clear
-
-		levelsof Niveau, local(Niveau) clean
-		global Education `Niveau'
-		foreach z of local Niveau {
-			levelsof Montant if Niveau=="`z'", local(Edu_montant`z')
-			global Edu_montant`z' `Edu_montant`z''
-			
-		}
-		restore
-
 */
 
 if $save_scenario ==1{

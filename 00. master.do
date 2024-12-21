@@ -128,6 +128,8 @@ if ("$country" == "MRT" & $run_presim == 1) {
 	
 	qui: include "$thedo_pre/01. Pullglobals.do" 
 	
+	qui: include "$thedo_pre/01. Social_Security.do" 	
+
 	qui: include "$thedo_pre/02. Income_tax.do" 
 	
 	qui: include "$thedo_pre/05. Spend_dta_purchases.do" 
@@ -138,34 +140,16 @@ if ("$country" == "MRT" & $run_presim == 1) {
 	
 	qui: include "$thedo_pre/08. Subsidies_elect.do" 
 	
+	qui: include "$thedo_pre/08. Subsidies_agric.do" 
+
+	qui: include "$thedo_pre/08. Subsidies_fuel.do" 
+	
+	qui: include "$thedo_pre/09. Inkind Transfers.do" 
+
 	qui: include "$thedo_pre/Consumption_NetDown.do"
 	
 	noi di "You run the pre simulation do files"
-}
-
-	*******************************************************************
-	//-Creating the other necessary variables to run do-files 10 & 11. // 
-	
-	use  "$presim/01_menages.dta", replace 
- 
-	keep hhid
- 
-	// 03. Social security contribution
-	preserve
-		 foreach var in csh_css csp_fnr csp_ipr csh_ipm {
-			gen `var'=0
-		 } 
-		 save "$tempsim/social_security_contribs.dta", replace
-	restore
-	
-	 // 09. Transfers InKind
-	preserve
-		foreach var in am_sante Sante_inKind am_pre_school_pub am_primary_pub am_secondary_pub am_tertiary_pub education_inKind{
-			gen `var'=0
-		}
-		save "${tempsim}/Transfers_InKind" , replace 
-	restore
-		
+}	
 	
 *******************************************************************
 //-Run do-files to the VAT simulation. // 
@@ -175,6 +159,12 @@ if ("$country" == "MRT" & $run_presim == 1) {
 *-------------------------------------
 
 qui: include  "$thedo/01. Pullglobals.do"
+
+*-------------------------------------
+// 1. Social Security
+*-------------------------------------
+
+qui: include "$thedo/01. Social Contributions.do" 
 
 *-------------------------------------
 // 2. Direct taxes
@@ -199,6 +189,12 @@ qui: include "$thedo/06. Subsidies.do"
 *-------------------------------------
 
 qui: include "$thedo/07. Excise_taxes.do"
+
+*-------------------------------------
+// 5. Custom Duties
+*-------------------------------------
+
+qui: include "$thedo/08. Custom_duties.do"
 
 *-------------------------------------
 // 8. VAT

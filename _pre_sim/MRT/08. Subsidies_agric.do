@@ -85,6 +85,8 @@ replace emel_prod = 1 if inlist(codpr, 8, 10, 13, 152, 153, 159, 160, 161, 162)
 	
 tab codpr if emel_prod
 
+tab coicop emel_prod [iw = depan], row nofreq
+
 gen sub_emel = max_eleg_1 * emel_prod * depan * 50/100
 
 gen subsidy_emel_direct = sub_emel

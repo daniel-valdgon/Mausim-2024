@@ -119,7 +119,9 @@ nois dis as text "In Excel we request that each individual is given $" $UBI_pers
 noi dis as result " 3. School Feeding Programme "
 /**********************************************************************************/
 
-	merge 1:m hhid  using  "$presim/07_educ.dta", nogen // not matched ae
+	merge 1:m hhid  using  "$presim/07_educ.dta", nogen keepusing(hhid pmt_seed_4 eleg_4) // not matched ae
+	
+	
 	
 forvalues i = 1/$n_progs {
 		
