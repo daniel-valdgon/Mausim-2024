@@ -18,91 +18,40 @@ macro drop _all
 * Gabriel - Personal Computer
 if "`c(username)'"=="gabriellombomoreno" {
 			
-	global pathdata     "/Users/gabriellombomoreno/Documents/WorldBank/Data/DATA_MRT/MRT_2019_EPCV/Data/STATA"
-	global pathdata_other     "/Users/gabriellombomoreno/Documents/WorldBank/Data/DATA_MRT_OTHER"
+	global pathdata     	"/Users/gabriellombomoreno/Documents/WorldBank/Data/DATA_MRT/MRT_2019_EPCV/Data/STATA" 
+	global pathdata_other   "/Users/gabriellombomoreno/Documents/WorldBank/Data/DATA_MRT_OTHER"
+	global path     		"/Users/gabriellombomoreno/Documents/WorldBank/Projects/01 MRT Fiscal Incidence Analysis"
 	
-	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/01 MRT Fiscal Incidence Analysis"
-	global thedo     	"${path}/2-Scripts/`c(username)'/0-Fiscal-Model"
-	
-	global country 		"MRT"
-	global run_presim 	1		// 1 = run presim
-
-	
-	*global tool         "${path}/3-Outputs/`c(username)'/Tool" 
-
-	*global xls_sn 		"${tool}/policy_inputs/${country}/SN_Sim_tool_VI_${country}_ref.xlsx"
-	*global xls_sn 		"${tool}/SN_Sim_tool_VI.xlsx"
-	*global xls_out    	"${tool}/SN_Sim_tool_VI.xlsx"	
-	
-	/*
-	{
-		local tool_gl substr("$path", strrpos("$path", "/")+1, length("$path"))
-		if `tool_gl' == "Regional_tool" {
-			global xls_sn 		"${tool}/policy_inputs/${country}/SN_Sim_tool_VI_${country}_ref.xlsx"
-			global xls_out    	"${tool}/SN_Sim_tool_VI_`c(username)'.xlsx"	
-		} 
-		if `tool_gl' == "Mausim_2024"{
-			global xls_sn    	"${tool}/SN_Sim_tool_VI_`c(username)'.xlsx"	
-			global xls_out    	"${tool}/SN_Sim_tool_VI_`c(username)'.xlsx"	
-		}
-	}
-	*/
 }
 
-* Andres
+* Other user
 if "`c(username)'"=="andre" {
-	global pathdata     "C:/Users/andre/Dropbox/Energy_Reform/vat_tool"
-	global path     	"C:/Users/andre/Dropbox/Energy_Reform/vat_tool"
-	*global thedo     	"${path}/gitrepo\andres"
-	global country 		"MRT"
-	global scenario_name_save2 "V1_${country}_Sub_Ref76"
-	global xls_sn 		"${path}/03_Tool/policy_inputs/${country}/SN_Sim_tool_VI_${country}_ref.xlsx"
-	global xls_out    	"${path}/03_Tool/SN_Sim_tool_VI_`c(username)'.xlsx"	
-}
 
-* Andres - Personal Computer
-if "`c(username)'"=="andre" {
-	global pathdata     "C:/Users/andre/Dropbox/Energy_Reform/vat_tool"
-	global path     	"C:/Users/andre/Dropbox/Energy_Reform/vat_tool"
-	global thedo     	"${path}/02_scripts"
-}
-
-* Daniel
-if "`c(username)'"=="wb419055" {
-	
-	global country "MRT" 	// leave the country global within your username
-	global hh_coverage	0 // 1: 44% coverage, 2: 76% Coverage
-
-	//Project folder 
-	global path     	"C:\Users\wb419055\OneDrive - WBG\West Africa\Mauritania\03_MauSim\Mausim_2024"
-	
-	// Data folder when using data from an external library (not often in West Africa tool}
-	global pathdata     "C:\Users\wb419055\OneDrive - WBG\West Africa\Mauritania\03_MauSim\Mausim_2024" 
-	
-	// Personal folder with do-file 
-	global thedo     	"C:\Users\wb419055\OneDrive - WBG\West Africa\Mauritania\03_MauSim\Mausim_2024/00_gitrepo\wb419055"
-	
-	// Output files @Gabriel why not part of the tool (Also let's move them to be in the same excel file style) 
-	global xls_sn    	"${path}/03_Tool/policy_inputs/${country}/SN_Sim_tool_VI_${country}_ref.xlsx" // excel file with policy inputs 
-	global xls_out    	"${path}/03_Tool/SN_Sim_tool_VI_`c(username)'.xlsx" // excel file with outputs
+	global pathdata     	".../DATA_MRT/MRT_2019_EPCV/Data/STATA/1_raw" 
+	global pathdata_other   ".../DATA_MRT/MRT_2019_EPCV/Data/STATA/2_other"
+	global path     		".../01 MRT Fiscal Incidence Analysis"
 
 }
-	
-	
+
+	* Data
 	global data_sn 		"${pathdata}/1_raw"    
-	global data_sn_other 	"${pathdata_other}" 
+	global data_sn_other "${pathdata_other}" 
 
 	global presim       "${path}/1-Cleaned_data/2_pre_sim"
 	global tempsim      "${path}/1-Cleaned_data/3_temp_sim"
 	global data_out    	"${path}/1-Cleaned_data/4_sim_output"
 
+	* Tool
 	global tool         "${path}/3-Outputs/`c(username)'/Tool" 
 	
 	global xls_sn 		"${tool}/SN_Sim_tool_VI.xlsx"
 	global xls_out    	"${tool}/SN_Sim_tool_VI.xlsx"	
 	
+	* Scripts
+	global thedo     	"${path}/2-Scripts/`c(username)'/0-Fiscal-Model"
+	
 	global theado       "$thedo/ado"
-	global thedo_pre    "$thedo/_pre_sim/"
+	global thedo_pre    "$thedo/_pre_sim"
 	
 	scalar t1 = c(current_time)
 	
@@ -111,6 +60,7 @@ global devmode = 1  			// Indicates if we run a developers mode of the tool.
 								// In the developers mode all the data is being saved 
 								// in .dta files in the subfolders in 3_temp_sim 
 global asserts_ref2018 = 0
+global run_presim 	1			// 1 = run presim
 
 							
 *===============================================================================
