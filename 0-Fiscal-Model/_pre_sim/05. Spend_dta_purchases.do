@@ -161,7 +161,7 @@ save "$presim/IO_Matrix.dta", replace
 
 
 *----- Create Maps
-shp2dta using "$data_sn_other/Shapes/mrt_admbnda_adm1_ansade_20240327.shp", database("$presim/mrtdb") coordinates("$presim/mrtcoord") genid(id) replace
+shp2dta using "$data_other/Shapes/mrt_admbnda_adm1_ansade_20240327.shp", database("$presim/mrtdb") coordinates("$presim/mrtcoord") genid(id) replace
 
 
 

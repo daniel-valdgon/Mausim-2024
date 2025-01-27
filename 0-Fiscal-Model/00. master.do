@@ -18,8 +18,7 @@ macro drop _all
 * Gabriel - Personal Computer
 if "`c(username)'"=="gabriellombomoreno" {
 			
-	global pathdata     	"/Users/gabriellombomoreno/Documents/WorldBank/Data/DATA_MRT/MRT_2019_EPCV/Data/STATA" 
-	global pathdata_other   "/Users/gabriellombomoreno/Documents/WorldBank/Data/DATA_MRT_OTHER"
+	global pathdata     	"/Users/gabriellombomoreno/Documents/WorldBank/Data/DATA_MRT" 
 	global path     		"/Users/gabriellombomoreno/Documents/WorldBank/Projects/01 MRT Fiscal Incidence Analysis"
 	
 }
@@ -28,14 +27,13 @@ if "`c(username)'"=="gabriellombomoreno" {
 if "`c(username)'"=="andre" {
 
 	global pathdata     	".../DATA_MRT/MRT_2019_EPCV/Data/STATA/1_raw" 
-	global pathdata_other   ".../DATA_MRT/MRT_2019_EPCV/Data/STATA/2_other"
 	global path     		".../01 MRT Fiscal Incidence Analysis"
 
 }
 
 	* Data
-	global data_sn 		"${pathdata}/1_raw"    
-	global data_sn_other "${pathdata_other}" 
+	global data_sn 		"${pathdata}/MRT_2019_EPCV/Data/STATA/1_raw"
+    global data_other   "${pathdata}/MRT_FIA_OTHER"
 
 	global presim       "${path}/1-Cleaned_data/2_pre_sim"
 	global tempsim      "${path}/1-Cleaned_data/3_temp_sim"

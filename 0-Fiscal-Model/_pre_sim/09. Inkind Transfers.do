@@ -19,7 +19,7 @@ set seed 123456789
 *----- Read Data aun unique 
  
 * Agglomerations
-import delimited "$data_sn_other/QGis/Agglomerations.csv", clear
+import delimited "$data_other/QGis/Agglomerations.csv", clear
 	
 gunique agglomerat
 
@@ -34,7 +34,7 @@ save `agg', replace
 
 
 * Health institutions
-import delimited "$data_sn_other/QGis/Health.csv", clear
+import delimited "$data_other/QGis/Health.csv", clear
 
 ren latitude id2
 
@@ -57,7 +57,7 @@ save `health', replace
 
 
 * Matrix distances
-import delimited "$data_sn_other/QGis/Distances.csv", clear
+import delimited "$data_other/QGis/Distances.csv", clear
 
 ren (inputid targetid) (id id2)
 
