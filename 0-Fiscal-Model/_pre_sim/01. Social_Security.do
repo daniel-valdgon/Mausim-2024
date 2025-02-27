@@ -90,8 +90,8 @@ tab pos2 pos [iw = hhweight] if E18B == 1 // 23,609 to impute
 
 *---------- Parameters
 
-local ap_private 	0.14
-local ap_public 	0.18
+*local ap_private 	0.14
+*local ap_public 	0.18
 
 *---------- Tax income
 
@@ -104,17 +104,17 @@ gen an_income = income * 12 if tax_ind == 1
 gen public = inrange(E11, 1, 4)
 
 tab E11 public [iw = hhweight] if tax_ind == 1, m
-
+/*
 gen ss_contrib_pub = an_income * `ap_public' * public
 gen ss_contrib_pri = an_income * `ap_private' * (1 - public)
 
 egen ss_contrib =  rowtotal(ss_contrib_pub ss_contrib_pri)
-
+*/
 *---------- Pensions
 
-local soc_cont 	28830 // Mean wage MRO
-local pen_old	1.50 // 150% publico o 40% privado
-local pen_other	0.50 // Orphans 
+*local soc_cont 	28830 	// Mean wage MRO
+*local pen_old		1.50 	// 150% publico o 40% privado
+*local pen_other	0.50 	// Orphans 
 
 tab E8 [iw = hhweight]
 
@@ -124,16 +124,17 @@ tab D13 E18B [iw = hhweight] if tax_ind == 1, col
 gen pen_old = E8 == 1
 gen pen_other = E8 == 2
 
+/*
 gen ss_ben_old = `soc_cont' * `pen_old' * pen_old
 gen ss_ben_other = `soc_cont' * `pen_other' * pen_other
 
 egen ss_ben =  rowtotal(ss_ben_old ss_ben_other)
-
+*/
 
 * CNAM
 gen cnam = D13 == 1
 
-keep hhid idind ss_contrib* ss_ben* cnam
+keep hhid idind an_income public pen_old pen_other cnam
 
 
 save "$presim/01_social_security.dta", replace

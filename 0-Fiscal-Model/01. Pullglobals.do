@@ -13,24 +13,23 @@
 	0. Settings
 /-------------------------------------------------------*/
 
+	*------ Settings
+	import excel "$xls_sn", sheet(AuxParams_raw) first clear
 
-	import excel "$xls_sn", sheet(settingshide) first clear
-
-	levelsof cat, local(params)
+	levelsof globalname, local(params)
 	foreach z of local params {
-		levelsof value  if cat=="`z'", local(val)
+		levelsof globalvalue if globalname=="`z'", local(val)
 		global `z' `val'
 	}
 		
-	destring value , force replace
-	mkmat value ,  mat(settings)
-	
+	destring globalvalue, force replace
+	mkmat globalvalue,  mat(settings)
+
+
 	noi di "$scenario_name_save"
-	
+
 	global c:all globals
 	macro list c	
-	
-	
 	
 /*-------------------------------------------------------/
 	0. Policy Names
@@ -84,15 +83,8 @@
 	
 	import excel "$xls_sn", sheet(DirTax_raw) first clear
 	
-	levelsof Autresname, local(params)
-	foreach z of local params {
-		levelsof Autresvalue  if Autresname=="`z'", local(val)
-		global `z' `val'
-	}
-				
-	drop Autresname Autresvalue	
+
 	drop if rate=="."
-	
 	destring rate min max plus, replace
 	
 	global n_DirTax 3
@@ -180,29 +172,17 @@
 	*---------- Auxiliar - Sector - Product
 	import excel "$xls_sn", sheet("IO_percentage") firstrow clear
 	save "$presim/IO_percentage.dta", replace
-	
-	if ("$country" == "GMB") {
-		global sect_fixed ""
-	}
 		
 	
 	*---------- VAT
-	import excel "$xls_sn", sheet("TVA_aux_params") firstrow clear
-	levelsof globalname, local(globales)
-	foreach z of local globales {
-		levelsof globalcontent if globalname=="`z'", local(val)
-		global `z' `val'
-	}
-	
-	if $TVA_simplified == 0{
+	if $TVA_simplified == 0 {
+		
 		import excel "$xls_sn", sheet("TVA_raw") firstrow clear
 		drop produit
 		drop if codpr==.
 		recode elasticities (.=0)
-		tempfile VAT_original
-		save `VAT_original'
+		
 		levelsof codpr, local(products)
-		global products "`products'"
 		foreach z of local products {
 			*dis `z'
 			levelsof TVA          if codpr==`z', local(vatrate)
@@ -284,18 +264,8 @@
 	*--------- Electricity
 
 	import excel "$xls_sn", sheet(Subvention_electricite_raw) first clear
-			
-	levelsof Autresname, local(params)
-	foreach z of local params {
-		levelsof Autresvalue  if Autresname=="`z'", local(val)
-		global `z' `val'
-	}
-			
+	
 	drop if Tariff=="."
-			
-	*gen namevar = Threshold+"_"+Type
-	*tempfile electricite_raw_dta
-	*save `electricite_raw_dta', replace 
 
 	levelsof Type, local(types)
 	global typesElec "`types'"
@@ -325,13 +295,14 @@
 	import excel "$xls_sn", sheet(qhealth_raw) first clear
 		
 	levelsof location, local(category)
-	*global products "`products'"
 	foreach z of local category {
 		*di `z'
 		levelsof q_indexh          if location==`z', local(index)
 		global ink_qh_`z' `index'
 	}
 	
+	
+
 	/*
 	import excel "$xls_sn", sheet(qeduc_raw) first clear
 		
@@ -368,44 +339,4 @@
 		  
 	}
 */
-
-if $save_scenario ==1{
-	global c:all globals
-	macro list c
-
-	clear
-	gen globalname=""
-	gen globalcontent=""
-	local n=1
-	foreach glob of global c{
-		dis `"`glob' = ${`glob'}"'
-		set obs `n'
-		replace globalname="`glob'" in `n'
-		replace globalcontent=`"${`glob'}"' in `n'
-		local ++n
-	}
-
-	foreach gloname in c thedo_pre theado thedo xls_sn data_out tempsim presim data_dev data_sn path S_4 S_3 S_level S_ADO S_StataSE S_FLAVOR S_OS S_OSDTL S_MACH save_scenario load_scenario devmode asserts_ref2018{
-		cap drop if globalname=="`gloname'"
-	}
-
-	export excel "$xls_out", sheet("p_${scenario_name_save}") sheetreplace first(variable)
-	noi dis "{opt All the parameters of scenario ${scenario_name_save} have been saved to Excel.}"
-	
-	*Add saved scenario to list of saved scenarios
-	import excel "$xls_out", sheet(legend) first clear cellrange(AH1)
-	drop if Scenario_list==""
-	expand 2 in -1
-	replace Scenario_list="${scenario_name_save}" in -1
-	duplicates drop
-	gen ord=2
-	replace ord=1 if Scenario_list=="Ref_2018"
-	replace ord=3 if Scenario_list=="User_def_sce"
-	sort ord, stable
-	drop ord
-	
-	export excel "$xls_out", sheet(legend, modify) cell(AH2)
-}
-
- 
 

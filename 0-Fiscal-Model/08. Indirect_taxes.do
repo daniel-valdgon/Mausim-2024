@@ -44,7 +44,7 @@ gen exempted=.
 levelsof codpr, local(produits)
 foreach prod of local produits {
 	replace TVA      = ${vatrate_`prod'} if codpr==`prod'
-	replace formelle = ${vatform_`prod'} if codpr==`prod'
+	*replace formelle = ${vatform_`prod'} if codpr==`prod'
 	replace exempted = ${vatexem_`prod'} if codpr==`prod'
 }
 

@@ -14,7 +14,7 @@ set seed 123456789
 	
 	
 /*-------------------------------------------------------/
-	1. EMEL
+	1. Temwine - EMEL
 /-------------------------------------------------------*/
 	
 *------- Welfare Targeting and eligibility
@@ -89,17 +89,19 @@ tab codpr if emel_prod
 
 tab coicop emel_prod [iw = depan], row nofreq
 
+
+/*
 gen sub_emel = uno * emel_prod * depan * 50/100
 
 gen subsidy_emel_direct = sub_emel
 replace subsidy_emel_direct = 227396.4 if sub_emel > 227396.4
 
-tabstat subsidy_emel_direct [aw = hhweight] if subsidy_emel_direct > 0, s(min max mean sd p50 sum count)  
+*tabstat subsidy_emel_direct [aw = hhweight] if subsidy_emel_direct > 0, s(min max mean sd p50 sum count)  
 
-tab uno [iw = hhweight] if  subsidy_emel_direct > 0
+*tab uno [iw = hhweight] if  subsidy_emel_direct > 0
 
 gcollapse (sum) subsidy_emel_direct (max) max_eleg_1 emel_prod, by(hhid hhsize)
-
+*/
 *ren wilaya departement
 
 save "$presim/08_subsidies_emel.dta", replace
@@ -215,28 +217,33 @@ tabstat F3 fert_use fert_val [aw = hhweight], s(p10 p25 p50 p75 p90 mean min max
 
 tabstat F3 fert_use fert_val [aw = hhweight] if F3 > 0, s(p10 p25 p50 p75 p90 mean min max sum)
 
-*------- Option : Community level
+*------- Option 1: Community level
 merge m:1 A1 A2 A3 using `communautaire', gen(mr_com)
 
 * Check merge
 tab A1 mr_com [iw = hhweight], row nofreq
 
-gen d_sub = d_fert == 1 | d_pest == 1 
-
-*gen d_sub = F3 > 0
+*gen d_sub = d_fert == 1 | d_pest == 1 
 
 
-gen subsidy_inag_direct = d_sub * 0.65 * fert_val
+*------- Option 2: Community level
 
-keep hhid A1 A2 A3 fert pest d_fert d_pest mr_com d_sub fert_use fert_val F3 subsidy_inag_direct
+gen d_sub = F3 > 1
+
+*gen subsidy_inag_direct = d_sub * 0.65 * fert_val
+
+*tabstat d_sub subsidy_inag_direct [aw = hhweight], s(p50 mean min max sum)
+
+
+keep hhid A1 A2 A3 fert pest d_fert d_pest mr_com d_sub fert_use fert_val F3
 
 *--- Final Data
 
 save "$presim/08_subsidies_fert.dta", replace
 
-merge 1:1 hhid using "$presim/08_subsidies_emel.dta", nogen
+*merge 1:1 hhid using "$presim/08_subsidies_emel.dta", nogen
 
-save "$presim/08_subsidies_agric.dta", replace
+*save "$presim/08_subsidies_agric.dta", replace
 
 
 

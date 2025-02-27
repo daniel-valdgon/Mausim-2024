@@ -36,19 +36,43 @@ foreach var in csh_mutsan am_bourse am_subCMU am_sesame am_moin5 am_cesarienne S
 	gen `var'=0
 } 
 
-
 /* Disposable Income in the gross up */
 *gen double yd_pre=round(dtot/hhsize,0.01)
 
+local ppp = 12.44526 * 10
+local ppp_ipc19 = 1.05471
 
-global gdp_growth = (1 - 0.004) * (1 + 0.007) * (1 + 0.068)  * (1 + 0.065)
+gen line_1 = 2.15 * 365 * `ppp' * `ppp_ipc19'
+gen line_2 = 3.65 * 365 * `ppp' * `ppp_ipc19'
+gen line_3 = 6.85 * 365 * `ppp' * `ppp_ipc19' 
 
-*di `gdp_growth'
+gen double yd_pre= dtot / hhsize
 
-replace zref = zref * ${gdp_growth}
 
-gen double yd_pre=round(dtot * ${gdp_growth}/hhsize,0.01)
+* Now casting from 2019 to 2024
+if $nowcast24 == 1 {
+/*	
+	local nc_ngdp_gr = 1.42570
+	local nc_rgdp_gr = 1.23099
+	*local nc_pop_gr = 1.15786
+	local nc_ipc_gr = 1.24773
+	*local ppp_ipc = `ppp_ipc' * `nc_ipc_gr'
+*/
 
+	replace zref = zref * ${nc_ipc_gr}
+	*replace hhweight = hhweight * ${nc_pop_gr}
+	
+	replace yd_pre = yd_pre * ${nc_gdp_gr}
+
+	replace line_1 = line_1 * ${ppp_ipc}
+	replace line_2 = line_2 * ${ppp_ipc}
+	replace line_3 = line_3 * ${ppp_ipc}
+
+}
+
+
+
+*replace zref = line_2
 
 if $devmode== 1 {
 	merge 1:1 hhid using "${tempsim}/social_security_contribs.dta", nogen keepusing(hhid ss*)
@@ -189,44 +213,26 @@ gen poor=1 if yc_pc<=zref
 recode poor .= 0
 tab poor [iw=pondih]
 
+
+
+/* Quick check
+cap drop poor_test*
+
+gen poor_test1 = ymp_pc <= zref
+gen poor_test2 = ymp_pc <= line_1
+gen poor_test3 = ymp_pc <= line_2
+gen poor_test4 = ymp_pc <= line_3
+
+tabm poor_test* [iw = pondih], row
+
+*/
+
+
 *change taxes and contributions back to positives
 
 foreach i in `Indtaxes_pc' `Directaxes_pc' `Contributions_pc' {
 		replace `i'=-`i'
-	}
-
-/*
-* Other variable to create descriptive statistics outside the CEQ
-foreach var in depan  `list_item_stats' income_tax_reduc  { 
-gen `var'_pc= `var'/hhsize
 }
-*/
-
-// international pov lines
-
-
-	* MRT: i2017 - 1.05, i2018 - 0.65, i2019 - 0.98. ccpi_a
-	* MRT: i2017 - 3.0799999,	i2018 - 4.2035796. fcpi_a
-	* MRT: i2017 - 2.269, i2018 - 3.07. hcpi_a
-	* MRT Inflation according to WorldBank Data Dashboard. 2017 - 2.3, 2018 - 3.1
-	* Country specific...
-
-	local ppp17 = 12.4452560424805
-	local inf17 = 2.3
-	local inf18 = 3.1
-	local inf19 = 2.3
-	cap drop line_1 line_2 line_3
-	gen line_1=2.15*365*`ppp17'*`inf17'*`inf18'*`inf19'
-	gen line_2=3.65*365*`ppp17'*`inf17'*`inf18'*`inf19'
-	gen line_3=6.85*365*`ppp17'*`inf17'*`inf18'*`inf19'
-
-	foreach var in /*line_1 line_2 line_3*/ yd_pc yc_pc  {
-		gen test=1 if `var'<=zref
-		recode test .= 0
-		*noi tab test [iw=hhweight*hhsize]
-		drop test
-	}
-
 
 
 save "$data_out/output.dta", replace
@@ -316,38 +322,6 @@ egen inktransf_total = rowtotal(`InKindTransfers')
 egen inktransf_total_pc = rowtotal(`InKindTransfers_pc')
 
 
-/*
-gen subsidy_eau = subsidy_eau_direct + subsidy_eau_indirect
-gen subsidy_eau_pc = subsidy_eau_direct_pc + subsidy_eau_indirect_pc
-
-gen subsidy_emel = subsidy_emel_direct + subsidy_emel_indirect
-gen subsidy_emel_pc = subsidy_emel_direct_pc + subsidy_emel_indirect_pc
-
-gen subsidy_inag = subsidy_inag_direct + subsidy_inag_indirect
-gen subsidy_inag_pc = subsidy_inag_direct_pc + subsidy_inag_indirect_pc
-
-gen subsidy_fuel = subsidy_fuel_direct + subsidy_fuel_indirect
-gen subsidy_fuel_pc = subsidy_fuel_direct_pc + subsidy_fuel_indirect_pc
-
-egen dirtax_total = rowtotal(`Directaxes')
-egen dirtax_total_pc = rowtotal(`Directaxes_pc')
-
-egen dirtransf_total = rowtotal(`DirectTransfers')
-egen dirtransf_total_pc = rowtotal(`DirectTransfers_pc')
-
-egen sscontribs_total = rowtotal(`Contributions')
-egen sscontribs_total_pc = rowtotal(`Contributions_pc')
-
-gen subsidy_total = subsidy_elec + subsidy_fuel + subsidy_eau * subsidy_emel
-gen subsidy_total_pc = subsidy_elec_pc + subsidy_fuel_pc + subsidy_eau_pc + subsidy_emel_pc
-
-gen indtax_total = excise_taxes + Tax_TVA
-gen indtax_total_pc = excise_taxes_pc + Tax_TVA_pc
-
-gen inktransf_total = health_inKind + education_inKind
-gen inktransf_total_pc = health_inKind_pc + education_inKind_pc
-*/
-
 
 *------- Per capita totals
 foreach i in `Directaxes' `Contributions' `DirectTransfers'  `Indtaxes' `subsidies' `InKindTransfers' {
@@ -376,7 +350,6 @@ save "$data_out/output.dta", replace
 if $save_scenario == 1 {	
 	save "$data_out/output_${scenario_name_save}.dta", replace
 }
-
 
 
 

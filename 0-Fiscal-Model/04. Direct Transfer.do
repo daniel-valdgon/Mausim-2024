@@ -7,7 +7,7 @@
 *--------------------------------------------------------------------------------
 *--------------------------------------------------------------------------------
 
-set seed 1234
+set seed 123456789
 
 /**********************************************************************************/
 *noi dis as result " 1. Tekavoul "
@@ -21,11 +21,6 @@ set seed 1234
 
 global prog_hh 		""
 global prog_indiv 	""
-
-global tar_PMT_1	1
-global tar_PMT_2	1
-global tar_PMT_3	0
-global tar_PMT_4	0
 
 
 	use  "$presim/07_dir_trans_PMT.dta", clear 

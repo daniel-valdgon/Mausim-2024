@@ -28,7 +28,7 @@
 clear all
 macro drop _all
 
-* Gabriel
+/* Gabriel
 if "`c(username)'"=="gabriellombomoreno" {
 	
 	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/Mausim_2024"
@@ -54,13 +54,67 @@ if "`c(username)'"=="gabriellombomoreno" {
 }
 
 
+	*----- Data
+	global data_sn 		"${pathdata}/MRT_2019_EPCV/Data/STATA/1_raw"
+    global data_other   "${dathdata}/MRT_FIA_OTHER"
 
-	global data_sn 		"${path}/01. Data/1_raw/MRT"    
-	global presim       "${path}/01. Data/2_pre_sim/MRT"
-	global data_out    	"${path}/01. Data/4_sim_output"
+	global presim       "${path}/1-Cleaned_data/2_pre_sim"
+	global tempsim      "${path}/1-Cleaned_data/3_temp_sim"
+	global data_out    	"${path}/1-Cleaned_data/4_sim_output"
+
+	*----- Tool
+	global xls_sn 		"${tool}/SN_Sim_tool_VI.xlsx"
+	global xls_out    	"${tool}/Figures_print.xlsx"	
+	
+	*----- Ado	
 	global theado       "$thedo/ado"
+	
 	scalar t1 = c(current_time)
+*/
+	
 
+* Gabriel - Personal Computer
+if "`c(username)'"=="gabriellombomoreno" {			
+	global pathdata     	"/Users/gabriellombomoreno/Documents/WorldBank/Data/DATA_MRT" 
+	global path     		"/Users/gabriellombomoreno/Documents/WorldBank/Projects/01 MRT Fiscal Incidence Analysis"
+	
+	global tool         "${path}/3-Outputs/`c(username)'/Tool" 	
+	global thedo     	"${path}/2-Scripts/`c(username)'/0-Fiscal-Model"
+	
+}
+	
+	*----- Figures parameters
+	global numscenarios	2
+	global proj_1		"Test" 
+	global proj_2		""
+	global proj_3		""
+	
+	
+	global policy		"am_prog_1 am_prog_2 am_prog_3 am_prog_4 subsidy_emel_direct"
+	global allpolicy	"dirtax_total dirtransf_total subsidy_total indtax_total inktransf_total"
+	
+	
+	global income		"ymp" // ymp, yn, yd, yc, yf
+	global income2		"yd"
+	global reference 	"zref" // Only one	
+	
+	*----- Data
+	global data_sn 	"${pathdata}/MRT_2019_EPCV/Data/STATA/1_raw"
+    global data_other   "${dathdata}/MRT_FIA_OTHER"
+
+	global presim       "${path}/1-Cleaned_data/2_pre_sim"
+	global tempsim      "${path}/1-Cleaned_data/3_temp_sim"
+	global data_out    	"${path}/1-Cleaned_data/4_sim_output"
+
+	*----- Tool
+	global xls_sn 		"${tool}/SN_Sim_tool_VI.xlsx"
+	global xls_out    	"${tool}/Figures_print.xlsx"	
+	
+	*----- Ado	
+	global theado       "$thedo/ado"
+
+	scalar t1 = c(current_time)	
+	
 	
 *===============================================================================
 // Run necessary ado files
@@ -74,7 +128,7 @@ cap run "$theado//_ebin.ado"
 /-------------------------------------------------------*/
 
 	
-use "$data_sn/Datain/individus_2019.dta", clear
+use "$data_sn/individus_2019.dta", clear
 
 forvalues i = 1/6 {
 	gen prog_`i' = (PS4A == `i' | PS4B == `i' | PS4C == `i')
@@ -124,7 +178,6 @@ tabstat $hh_progs [aw = hhweight] if tag == 1, s(sum) by(decile_yc) save
 return list
 
 
-
 mat A = r(Stat1) \ r(Stat2) \ r(Stat3) \ r(Stat4) \ r(Stat5) \ r(Stat6) \ r(Stat7) \ r(Stat9) \ r(Stat9) \ r(Stat10)
 
 mat rownames A = 1 2 3 4 5 6 7 8 9 10
@@ -136,6 +189,7 @@ mat rownames A = 1 2 3 4 5 6 7 8 9 10
 
 
 tabstat hh_prog_1 hh_prog_2 [aw = hhweight] if tag == 1, s(sum) by(decile_ymp)
+tabstat hh_prog_1 hh_prog_2 [aw = hhweight] if tag == 1, s(sum) by(wilaya)
 
 
 gasb

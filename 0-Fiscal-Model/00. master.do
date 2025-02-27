@@ -21,10 +21,12 @@ if "`c(username)'"=="gabriellombomoreno" {
 	global pathdata     	"/Users/gabriellombomoreno/Documents/WorldBank/Data/DATA_MRT" 
 	global path     		"/Users/gabriellombomoreno/Documents/WorldBank/Projects/01 MRT Fiscal Incidence Analysis"
 	
+	global tool         "${path}/3-Outputs/`c(username)'/Tool" 
+	global thedo     	"${path}/2-Scripts/`c(username)'/0-Fiscal-Model"
 }
 
 * Other user
-if "`c(username)'"=="andre" {
+if "`c(username)'"=="..." {
 
 	global pathdata     	".../DATA_MRT/MRT_2019_EPCV/Data/STATA/1_raw" 
 	global path     		".../01 MRT Fiscal Incidence Analysis"
@@ -39,15 +41,11 @@ if "`c(username)'"=="andre" {
 	global tempsim      "${path}/1-Cleaned_data/3_temp_sim"
 	global data_out    	"${path}/1-Cleaned_data/4_sim_output"
 
-	* Tool
-	global tool         "${path}/3-Outputs/`c(username)'/Tool" 
-	
+	* Tool	
 	global xls_sn 		"${tool}/SN_Sim_tool_VI.xlsx"
 	global xls_out    	"${tool}/SN_Sim_tool_VI.xlsx"	
 	
-	* Scripts
-	global thedo     	"${path}/2-Scripts/`c(username)'/0-Fiscal-Model"
-	
+	* Scripts	
 	global theado       "$thedo/ado"
 	global thedo_pre    "$thedo/_pre_sim"
 	
@@ -58,9 +56,10 @@ global devmode = 1  			// Indicates if we run a developers mode of the tool.
 								// In the developers mode all the data is being saved 
 								// in .dta files in the subfolders in 3_temp_sim 
 global asserts_ref2018 = 0
-global run_presim 	1			// 1 = run presim
+global run_presim = 1			// 1 = run presim and simulation, 0 = Run only simulation
 
-							
+
+	
 *===============================================================================
 // Run necessary ado files
 *===============================================================================
@@ -70,11 +69,10 @@ foreach f of local files{
 	 qui: cap run "$theado//`f'"
 }
 
-
 *===============================================================================
 // Run pre_simulation files (Only run once)
 *===============================================================================
-
+{
 if $run_presim == 1 {
 
 	
@@ -103,11 +101,11 @@ if $run_presim == 1 {
 	noi di "You run the pre simulation do files"
 }	
 
-
+}
 	
 *******************************************************************
 //-Run do-files to the VAT simulation. // 
-	
+{
 *-------------------------------------
 // 1. Pull Macros
 *-------------------------------------
@@ -135,8 +133,6 @@ qui: include "$thedo/04. Direct Transfer.do"
 *-------------------------------------
 // 6. Subsidies
 *-------------------------------------
-
-qui: include "$thedo/06. Temwine.do"
 
 qui: include "$thedo/06. Subsidies.do"
 
@@ -185,9 +181,10 @@ if "`sce_debug'"=="yes" dis as error  "You have not turned off the debugging pha
 shell ! "$xls_out"
 
 scalar t2 = c(current_time)
+
 display "Running the complete tool took " (clock(t2, "hms") - clock(t1, "hms")) / 1000 " seconds"
 
-
+}
 
 
 	

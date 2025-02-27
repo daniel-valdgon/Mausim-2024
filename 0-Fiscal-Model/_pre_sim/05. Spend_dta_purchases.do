@@ -50,18 +50,21 @@ labmask coicop, values(product_name)
 tempfile Bachas_mean
 save `Bachas_mean', replace
 
+drop product_name
+reshape wide informal_purchase, i(decile_expenditure) j(coicop)
+
 
 *----- Household Data
 use "$data_sn/EPCV2019_income.dta" , clear
 
 * Standardization
-keep hid idp wgt hhsize pcc
+keep hid idp wgt hhsize pcc wilaya
 
 ren hid hhid
 ren wgt hhweight
 
 * Disposable Income
-collapse (sum) dtot = pcc, by(hhid hhweight hhsize)
+collapse (sum) dtot = pcc, by(hhid hhweight hhsize wilaya)
 
 ren hhid hid
 merge 1:1 hid using "$data_sn/menage_pauvrete_2019.dta", keep(matched) keepusing(hhweight hhsize zref pcexp) nogen

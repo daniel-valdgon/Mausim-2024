@@ -21,24 +21,26 @@
 
 /********** Education *******/
 
-global run_qeduc = 0
-global run_qhealth = 0
+*global run_qeduc = 0
+*global run_qhealth = 0
+*global mont_health_pc 20220
+
 
 use "$presim/inkind_transfers2.dta", clear 
 
 merge m:1 hhid using "$presim/01_menages.dta", assert(3) keepusing(hhweight hhsize) nogen
 
 *----- Values
-local tot_1 	1591417508
-local tot_2 	17175917502
-local tot_3 	5385512447
-local tot_4 	2928263675
-local tot_7		4605851859
-local tot_8 	4373212362
+*local tot_1 	1591417508
+*local tot_2 	17175917502
+*local tot_3 	5385512447
+*local tot_4 	2928263675
+*local tot_7		4605851859
+*local tot_8 	4373212362
 *local tot_11 	2094254648
 *local tot_13 	1700723018
 
-local policy 1 2 3 4 7 8
+local policy 1 2 3 4 7 // 8
 
 gen uno = 1
 
@@ -48,7 +50,7 @@ foreach i of local policy {
 	local level_`i' `r(sum)' 
 	di `level_`i''
 	
-	gen am_educ_`i' = `tot_`i'' / `level_`i'' if level_`i' == 1
+	gen am_educ_`i' = ${am_educ_tot_`i'} / `level_`i'' if level_`i' == 1
 }
 
 
@@ -57,12 +59,12 @@ gen bened = am_educ_2 > 0
 * Add Quality only to primary
 if $run_qeduc == 1{
 	
-	local index1_r 0.84765 
-	local index1_u 1.21619
+	*local index1_r 0.84765 
+	*local index1_u 1.21619
 
 	gen index = .
-	replace index = `index1_u' if milieu == 1
-	replace index = `index1_r' if milieu == 2
+	replace index = ${qeduc_index1_u} if milieu == 1
+	replace index = ${qeduc_index1_r} if milieu == 2
 	
 	ren am_educ_2 am_educ_2_prev
 	gen am_educ_2 = am_educ_2_prev * index
@@ -75,18 +77,17 @@ collapse (sum) am_educ*, by(hhid)
 
 egen education_inKind=rowtotal(am*)
 
-egen education_general=rowtotal(am_educ_1 am_educ_2 am_educ_3 am_educ_4 am_educ_8)
+egen education_general=rowtotal(am_educ_1 am_educ_2 am_educ_3 am_educ_4) //am_educ_8)
 
 tempfile Transfers_InKind_Education
 save `Transfers_InKind_Education'
 
 
-global educ_var am_educ_1 am_educ_2 am_educ_3 am_educ_4 am_educ_8
+global educ_var am_educ_1 am_educ_2 am_educ_3 am_educ_4 //am_educ_8
 
 /********** Health *******/
 
 
-global mont_health_pc 20220
 
 use "$presim/inkind_transfers.dta", clear 
  

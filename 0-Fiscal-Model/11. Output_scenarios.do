@@ -44,6 +44,7 @@ if $load_scenario == 0 & $save_scenario == 0 {
 	local subsidies subsidy_total `Subsidies' subsidy_elec subsidy_fuel
 	local income ymp yn yd yc yf 
 	local concs `tax' `indtax' `transfer' `inkind' `income' `subsidies'
+
 	
 *Macros at per-capita values 
 	foreach x in tax indtax inkind transfer income concs subsidies {
@@ -56,6 +57,53 @@ if $load_scenario == 0 & $save_scenario == 0 {
 	*local rank ymp_pc
 	local pline zref line_1 line_2 line_3
 	
+	
+		
+	
+	
+*===============================================================================
+		* Save Scenario
+*===============================================================================
+	
+
+if $save_scenario ==1{
+	global c:all globals
+	macro list c
+
+	clear
+	gen globalname=""
+	gen globalcontent=""
+	local n=1
+	foreach glob of global c{
+		dis `"`glob' = ${`glob'}"'
+		set obs `n'
+		replace globalname="`glob'" in `n'
+		replace globalcontent=`"${`glob'}"' in `n'
+		local ++n
+	}
+
+	foreach gloname in c thedo_pre theado thedo xls_sn data_out tempsim presim data_dev data_sn path S_4 S_3 S_level S_ADO S_StataSE S_FLAVOR S_OS S_OSDTL S_MACH save_scenario load_scenario devmode asserts_ref2018{
+		cap drop if globalname=="`gloname'"
+	}
+
+	export excel "$xls_out", sheet("p_${scenario_name_save}") sheetreplace first(variable)
+	noi dis "{opt All the parameters of scenario ${scenario_name_save} have been saved to Excel.}"
+	
+	*Add saved scenario to list of saved scenarios
+	import excel "$xls_out", sheet(legend) first clear cellrange(AH1)
+	drop if Scenario_list==""
+	expand 2 in -1
+	replace Scenario_list="${scenario_name_save}" in -1
+	duplicates drop
+	gen ord=2
+	replace ord=1 if Scenario_list=="Ref_2018"
+	replace ord=3 if Scenario_list=="User_def_sce"
+	sort ord, stable
+	drop ord
+	
+	export excel "$xls_out", sheet(legend, modify) cell(AH2)
+}
+
 	
 *===============================================================================
 		*Produce Concentration by centile_pc

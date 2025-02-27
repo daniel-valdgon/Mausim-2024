@@ -1,55 +1,52 @@
 /*=============================================================================
-	Project:		Human Opportunity Index
+	Project:		
 	Author:			Gabriel 
-	Creation Date:	Nov 26, 2024
+	Creation Date:	
 	Modified:		
 	
 	Section: 		
 	Note:
 ==============================================================================*/
 
+
 clear all
 macro drop _all
 
-local dirtr			"dirtransf_total am_prog_1 am_prog_2 am_prog_3 am_prog_4"
-local dirtax		"dirtax_total income_tax_1 income_tax_2 income_tax_3"
-local sub			"subsidy_total subsidy_elec_direct subsidy_elec_indirect subsidy_emel subsidy_emel_direct subsidy_emel_indirect"
-local indtax		"indtax_total excise_taxes Tax_TVA TVA_direct TVA_indirect"
-local inktr			"inktransf_total education_inKind"
 
-* Gabriel
-if "`c(username)'"=="gabriellombomoreno" {
-	
-	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/Mausim_2024"
-	*global report 		"${path}/04. Reports/7. Summary/2. Presentation/Figures"
-	global thedo     	"${path}/02. Scripts"
-
-	global xls_out		"${path}/03. Tool/General_Results.xlsx"
-	global xls_sn    	"${path}/03. Tool/SN_Sim_tool_VI_`c(username)'.xlsx"
-	
-	* Set Parameters
-	global numscenarios	1
-	
-	global proj_1		"EU_v4" 
-	global proj_2		"v1_MRT_ElecReform"
-	global proj_3		"v2_MRT_Elec_CM"  
-	global proj_4		"RevRecSinGoods"
-	global proj_5		"DoubleSinGoodsBR"
-
-	global policy		"`inktr'"	
-	
-	global income		"yc" // ymp, yn, yd, yc, yf
-	global income2		"yf"
-	global reference 	"zref" // Only one
+* Gabriel - Personal Computer
+if "`c(username)'"=="gabriellombomoreno" {			
+	global pathdata     	"/Users/gabriellombomoreno/Documents/WorldBank/Data/DATA_MRT" 
+	global path     		"/Users/gabriellombomoreno/Documents/WorldBank/Projects/01 MRT Fiscal Incidence Analysis"
 }
 
-	global allpolicy	"dirtax_total sscontribs_total dirtransf_total subsidy_total indtax_total inktransf_total" 
-	global data_sn 		"${path}/01. Data/1_raw/MRT"    
-	global presim       "${path}/01. Data/2_pre_sim/MRT"
-	global data_out    	"${path}/01. Data/4_sim_output"
-	global theado       "$thedo/ado"	
+	* Policy
+	local allpolicy	"dirtax_total sscontribs_total dirtransf_total subsidy_total indtax_total inktransf_total"
 
-	scalar t1 = c(current_time)
+	* Figures parameters
+	global numscenarios	2
+	global proj_1		"MRT_Ref_2019_v1" 
+	global proj_2		"MRT_Ref_2024_v2"
+	
+	global policy		"am_proj_1 am_proj_2 am_proj_3 am_proj_4 subsidy_emel_direct"	
+	global income		"yc" // ymp, yn, yd, yc, yf
+	global income2		"yf"
+	global reference 	"zref" // Only one	
+	
+	* Data
+	global data_sn 		"${pathdata}/MRT_2019_EPCV/Data/STATA/1_raw"
+    global data_other   "${pathdata}/MRT_FIA_OTHER"
+
+	global presim       "${path}/1-Cleaned_data/2_pre_sim"
+	global tempsim      "${path}/1-Cleaned_data/3_temp_sim"
+	global data_out    	"${path}/1-Cleaned_data/4_sim_output"
+
+	* Tool
+	global xls_sn 		"${path}/3-Outputs/`c(username)'/Tool/SN_Sim_tool_VI.xlsx"
+	global xls_out    	"${path}/Figures_print.xlsx"	
+	
+	* Ado	
+	global theado       "$thedo/ado"
+
 	
 *==============================================================================
 // Run necessary ado files
