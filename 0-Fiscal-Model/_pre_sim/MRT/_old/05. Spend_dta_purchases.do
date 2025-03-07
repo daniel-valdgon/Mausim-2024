@@ -50,21 +50,18 @@ labmask coicop, values(product_name)
 tempfile Bachas_mean
 save `Bachas_mean', replace
 
-drop product_name
-reshape wide informal_purchase, i(decile_expenditure) j(coicop)
-
 
 *----- Household Data
 use "$data_sn/EPCV2019_income.dta" , clear
 
 * Standardization
-keep hid idp wgt hhsize pcc wilaya
+keep hid idp wgt hhsize pcc
 
 ren hid hhid
 ren wgt hhweight
 
 * Disposable Income
-collapse (sum) dtot = pcc, by(hhid hhweight hhsize wilaya)
+collapse (sum) dtot = pcc, by(hhid hhweight hhsize)
 
 ren hhid hid
 merge 1:1 hid using "$data_sn/menage_pauvrete_2019.dta", keep(matched) keepusing(hhweight hhsize zref pcexp) nogen
@@ -137,7 +134,6 @@ import excel "$data_sn/IO_Matrix.xlsx", sheet("IO_matrix") firstrow clear
 local thefixed 		"8 9" 
 local sect_elec  	"8"
 local sect_emel 	"1"
-local sect_fuel 	"9 12"
 
  	
 gen fixed=0
@@ -155,16 +151,12 @@ foreach var of local sect_emel {
 	replace emel_sec=1  if  sector==`var'
 }
 
-gen fuel_sec = 0
-foreach var of local sect_fuel {
-	replace fuel_sec=1  if  sector==`var'
-}
 	
 save "$presim/IO_Matrix.dta", replace
 
 
 *----- Create Maps
-shp2dta using "$data_other/Shapes/mrt_admbnda_adm1_ansade_20240327.shp", database("$presim/mrtdb") coordinates("$presim/mrtcoord") genid(id) replace
+shp2dta using "$data_sn/Shapes/mrt_admbnda_adm1_ansade_20240327.shp", database("$presim/mrtdb") coordinates("$presim/mrtcoord") genid(id) replace
 
 
 

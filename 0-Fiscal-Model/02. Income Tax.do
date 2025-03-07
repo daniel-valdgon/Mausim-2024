@@ -53,6 +53,8 @@ forvalues i = 1/`n1' {
 
 		local var2 : word `j' of ${all_regimes}
 
+
+
 		foreach t of global tholds`var1'_`var2' {
 					
 			local min = ${min`t'_`var1'_`var2'}

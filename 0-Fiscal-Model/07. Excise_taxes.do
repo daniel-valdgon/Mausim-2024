@@ -15,18 +15,15 @@
 
 
 if $devmode== 1 {
-    *use "$tempsim/Subsidies_verylong.dta", clear
-	use "$presim/05_netteddown_expenses_SY.dta", clear 
-
+    use "$tempsim/Subsidies_verylong.dta", clear
 }
 else{
 	use`Subsidies_verylong', clear
 }
 
-gen achats_sans_subs = achats_net_excise
-
-keep hhid codpr achats_sans_subs achats_net_excise informal_purchase
+keep hhid informal_purchase codpr achats_sans_subs achats_net_excise
 		
+
 global depan achats_sans_subs
 *global depan depan
 

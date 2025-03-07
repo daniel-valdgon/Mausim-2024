@@ -22,10 +22,10 @@ use "$presim/PMT_EPCV_harmonized.dta", clear
 *-------------- Elegibility
 
 gen eleg_1 = 1 // Tekavoul
-gen eleg_2 = worry == 1 // reason_drought == 1 // Food Transfers
+gen eleg_2 = reason_drought == 1 // Food Transfers
 replace eleg_2 = 1 if hh_prog_2 == 1
 
-gen eleg_3 = elmaouna == 1 // (elmaouna == 1 & milieu == 2) // Elmaouna
+gen eleg_3 = (elmaouna == 1 & milieu == 2) // Elmaouna
 gen eleg_5 = 1 // UBI
 gen eleg_6 = 1 // Public Student
 	
@@ -39,8 +39,6 @@ sum PMT_3
 replace PMT_3 = r(min) if hh_prog_2 == 1	
 	
 gen PMT_4 = PMT	
-
-
 	
 *--------------Adding seeds
 gen pmt_seed= uniform()

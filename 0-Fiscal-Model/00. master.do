@@ -1,54 +1,42 @@
 /*==============================================================================*\
- West Africa Mini Simulation Tool for indirect taxes (VAT)
- Authors: Madi Mangan, Gabriel Lombo, Daniel Valderrama
- Start Date: January 2024
- Update Date: March 2024
- 
+ West Africa - Simulation Tool
+ Authors: Madi Mangan, Gabriel Lombo, Daniel Valderrama, Andrés Gallegos
+ Start Date: November 2024
+ Update Date: 
 \*==============================================================================*/
    
 	*******************************************************************
 	***** GLOBAL PATHS ************************************************
 	
-	//Users (change this according to your own folder location)	
-	
 clear all
 macro drop _all
 
-
 * Gabriel - Personal Computer
 if "`c(username)'"=="gabriellombomoreno" {
-			
-	global pathdata     	"/Users/gabriellombomoreno/Documents/WorldBank/Data/DATA_MRT" 
-	global path     		"/Users/gabriellombomoreno/Documents/WorldBank/Projects/01 MRT Fiscal Incidence Analysis"
 	
-	global tool         "${path}/3-Outputs/`c(username)'/Tool" 
-	global thedo     	"${path}/2-Scripts/`c(username)'/0-Fiscal-Model"
-}
-
-* Other user
-if "`c(username)'"=="..." {
-
-	global pathdata     	".../DATA_MRT/MRT_2019_EPCV/Data/STATA/1_raw" 
-	global path     		".../01 MRT Fiscal Incidence Analysis"
+	global country 		"MRT"
+	
+	global pathdata     "/Users/gabriellombomoreno/Documents/WorldBank/Data/DATA_MRT/MRT_2019_EPCV/Data/STATA/1_raw"	
+	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/01 AFW Fiscal Incidence Analysis"
 
 }
 
 	* Data
-	global data_sn 		"${pathdata}/MRT_2019_EPCV/Data/STATA/1_raw"
-    global data_other   "${pathdata}/MRT_FIA_OTHER"
+	global presim       "${path}/01-Data/2_pre_sim/${country}"
+	global tempsim      "${path}/01-Data/3_temp_sim"
+	global data_out    	"${path}/01-Data/4_sim_output"
 
-	global presim       "${path}/1-Cleaned_data/2_pre_sim"
-	global tempsim      "${path}/1-Cleaned_data/3_temp_sim"
-	global data_out    	"${path}/1-Cleaned_data/4_sim_output"
-
-	* Tool	
-	global xls_sn 		"${tool}/SN_Sim_tool_VI.xlsx"
-	global xls_out    	"${tool}/SN_Sim_tool_VI.xlsx"	
-	
-	* Scripts	
+	* Scripts
+	global thedo     	"${path}/02-Scripts/`c(username)'/1-Fiscal-Model"		
 	global theado       "$thedo/ado"
-	global thedo_pre    "$thedo/_pre_sim"
+	global thedo_pre    "${path}/02-Scripts/`c(username)'/0-Standardize-Data/${country}"
 	
+	* Tool
+	global tool         "${path}/03-Output/`c(username)'/Tool" 	
+	
+	global xls_sn		"${tool}/Inputs/SN_Sim_tool_VI_${country}_ref.xlsx"
+	global xls_out		"${tool}/SN_Sim_tool_VI.xlsx"
+
 	scalar t1 = c(current_time)
 	
 // Global about the type of simulation.
@@ -56,10 +44,7 @@ global devmode = 1  			// Indicates if we run a developers mode of the tool.
 								// In the developers mode all the data is being saved 
 								// in .dta files in the subfolders in 3_temp_sim 
 global asserts_ref2018 = 0
-global run_presim = 1			// 1 = run presim and simulation, 0 = Run only simulation
-
-
-	
+						
 *===============================================================================
 // Run necessary ado files
 *===============================================================================
@@ -71,52 +56,22 @@ foreach f of local files{
 
 *===============================================================================
 // Run pre_simulation files (Only run once)
-*===============================================================================
-{
-if $run_presim == 1 {
-
-	
-	qui: include "$thedo_pre/01. Pullglobals.do" 
-	
-	qui: include "$thedo_pre/05. Spend_dta_purchases.do" 
-
-	qui: include "$thedo_pre/01. Social_Security.do" 	
-
-	qui: include "$thedo_pre/02. Income_tax.do" 
-	
-	qui: include "$thedo_pre/07. PMT.do" 
-
-	qui: include "$thedo_pre/07. Direct_transfer.do" 
-	
-	qui: include "$thedo_pre/08. Subsidies_elect.do" 
-	
-	qui: include "$thedo_pre/08. Subsidies_agric.do" 
-
-	qui: include "$thedo_pre/08. Subsidies_fuel.do" 
-	
-	qui: include "$thedo_pre/09. Inkind Transfers.do" 
-
-	qui: include "$thedo_pre/Consumption_NetDown.do"
-	
-	noi di "You run the pre simulation do files"
-}	
-
-}
+*===============================================================================	
 	
 *******************************************************************
 //-Run do-files to the VAT simulation. // 
-{
+	
+use "$presim/01_menages.dta", clear
+
+keep hhid 	
+
+save "${tempsim}/social_security_contribs.dta", replace
+
 *-------------------------------------
 // 1. Pull Macros
 *-------------------------------------
 
 qui: include  "$thedo/01. Pullglobals.do"
-
-*-------------------------------------
-// 1. Social Security
-*-------------------------------------
-
-qui: include "$thedo/01. Social Contributions.do" 
 
 *-------------------------------------
 // 2. Direct taxes
@@ -141,12 +96,6 @@ qui: include "$thedo/06. Subsidies.do"
 *-------------------------------------
 
 qui: include "$thedo/07. Excise_taxes.do"
-
-*-------------------------------------
-// 5. Custom Duties
-*-------------------------------------
-
-qui: include "$thedo/08. Custom_duties.do"
 
 *-------------------------------------
 // 8. VAT
@@ -181,11 +130,54 @@ if "`sce_debug'"=="yes" dis as error  "You have not turned off the debugging pha
 shell ! "$xls_out"
 
 scalar t2 = c(current_time)
-
 display "Running the complete tool took " (clock(t2, "hms") - clock(t1, "hms")) / 1000 " seconds"
 
-}
+*===============================================================================
+// Scope
+*===============================================================================
 
+global all_data 	"01_menages 02_Income_tax_input 05_netteddown_expenses_SY 05_purchases_hhid_codpr 07_dir_trans_PMT 07_educ 08_subsidies_elect 08_subsidies_fuel 08_subsidies_agric IO_Matrix IO_percentage" // Names of data
+global n 			11
+global data 		"${path}/01-Cleaned_data/2_pre_sim/${country}" 
+global sheet		"PresimData"
+
+* Variables
+forvalues i=1/$n {
+	
+	* First parameters
+	global var : word `i' of $all_data
+
+	* Read data
+	use "${data}/${var}.dta", clear
+
+	* Variables description
+	describe, replace
+
+	keep name type varlab
+
+	gen process = "$sheet"
+	gen data = "$var"
+	order process data, first
+		
+	save "${data}/lab_${var}.dta", replace 
+} 
+	
+	* Append data
+	global var : word 1 of $all_data
+	use "${data}/lab_${var}.dta", clear
+	erase "${data}/lab_${var}.dta"
+
+	if ($n > 1) {
+		forvalues i=2/$n {	
+			global var : word `i' of $all_data
+			append using  "${data}/lab_${var}"
+			erase "${data}/lab_${var}.dta"
+		}
+	}
+	
+export excel using "$xls_out", sheet("DT_${scenario_name_save}") sheetreplace first(variable) locale(C)  nolabel
+*/	
+	
 
 	
 	

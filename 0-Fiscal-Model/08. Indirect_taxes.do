@@ -27,6 +27,8 @@
 
 use "$presim/05_purchases_hhid_codpr.dta", clear
 
+keep hhid codpr depan 
+
 merge m:1 hhid using "$presim/01_menages.dta" , nogen keepusing(hhweight)
 
 collapse (sum) depan [iw=hhweight], by(codpr) 
@@ -44,7 +46,7 @@ gen exempted=.
 levelsof codpr, local(produits)
 foreach prod of local produits {
 	replace TVA      = ${vatrate_`prod'} if codpr==`prod'
-	*replace formelle = ${vatform_`prod'} if codpr==`prod'
+	replace formelle = ${vatform_`prod'} if codpr==`prod'
 	replace exempted = ${vatexem_`prod'} if codpr==`prod'
 }
 
@@ -238,6 +240,34 @@ if $devmode== 1 {
 }
 
 replace TVA_direct = TVA_elec if codpr==376
+
+
+/*
+	*Water
+
+	foreach tranch of varlist tranche*_tool_eau {
+		local i = real(substr("`tranch'",8,1))
+		cap gen TariffT`i'_eau = 0
+		replace TariffT`i'_eau = ${TariffT`i'_eau}
+		cap gen vatrateau_net_`i' = 0
+		replace vatrateau_net_`i' = $vatrate_332 if $VATregime_eau < `i'			   & $full_VAT_nonex_eau == 0  //Exempted below
+		replace vatrateau_net_`i' = $vatrate_332 if $VATregime_eau < tranche_water_max & $full_VAT_nonex_eau == 1  //Pay if over
+	}
+
+	gen TVA_eau = 0
+		
+	foreach tranch of varlist tranche*_tool_eau {
+		local i = real(substr("`tranch'",8,1))
+		replace TVA_eau = TVA_eau + TariffT`i'_eau*tranche`i'_tool_eau*vatrateau_net_`i'
+	}
+	replace TVA_eau = TVA_eau*(1-informal_purchase)*6
+
+
+	*Apply special VAT amounts
+
+	replace TVA_direct = TVA_elec if codpr==334
+	replace TVA_direct = TVA_eau  if codpr==332
+*/
 
 
 *-------------------------------------------------------------------*

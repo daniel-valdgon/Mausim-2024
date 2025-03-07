@@ -8,9 +8,12 @@
 	Note: 				
 ===============================================================================*/
 
+	
+	*global c:all globals
+	*macro list c	
 
 /*-------------------------------------------------------/
-	0. Settings
+	0. Auxiliar Data
 /-------------------------------------------------------*/
 
 	*------ Settings
@@ -24,17 +27,46 @@
 		
 	destring globalvalue, force replace
 	mkmat globalvalue,  mat(settings)
-
-
+	
 	noi di "$scenario_name_save"
 
-	global c:all globals
-	macro list c	
 	
-/*-------------------------------------------------------/
-	0. Policy Names
-/-------------------------------------------------------*/
+	*------ Percentage Matrix
+	import excel "$xls_sn", sheet("IO_percentage") firstrow clear
+	save "$presim/IO_percentage.dta", replace
+	
+	
+	*------ IO Matrix
+	import excel "$xls_sn", sheet("IO_Matrix") firstrow clear
+	 
+	local thefixed 		"8 9" 
+	local sect_elec  	"8"
+	local sect_emel 	"1"
+	local sect_fuel 	"12"
 
+	gen fixed=0
+	foreach var of local thefixed {
+		replace fixed=1  if  sector==`var'
+	}
+
+	gen elec_sec=0
+	foreach var of local sect_elec {
+		replace elec_sec=1  if  sector==`var'
+	}
+
+	gen emel_sec = 0
+	foreach var of local sect_emel {
+		replace emel_sec=1  if  sector==`var'
+	}
+
+	gen fuel_sec = 0
+	foreach var of local sect_fuel {
+		replace fuel_sec=1  if  sector==`var'
+	}
+		
+	save "$presim/IO_Matrix.dta", replace
+
+	
 	*------ Policy
 	import excel "$xls_sn", sheet("Policy") firstrow clear
 
@@ -83,8 +115,8 @@
 	
 	import excel "$xls_sn", sheet(DirTax_raw) first clear
 	
-
 	drop if rate=="."
+	
 	destring rate min max plus, replace
 	
 	global n_DirTax 3
@@ -123,7 +155,7 @@
 	3. Direct Transfers
 /-------------------------------------------------------*/
 
-	import excel "$xls_sn", sheet(Aux_direct_transfers_raw) first clear
+	import excel "$xls_sn", sheet(Aux_DirTransf_raw) first clear
 		
 	split cat, p("_")
 	*destring cat2, replace
@@ -149,7 +181,7 @@
 		
 		if "${pr_div_`i'}" == "departement"  | "${pr_div_`i'}" == "region"  {
 			*local i = 1
-			import excel "$xls_sn", sheet(prog_`i'_raw) first clear
+			import excel "$xls_sn", sheet(DirTransf_`i'_raw) first clear
 			drop if location ==.		
 			
 			destring beneficiaires, replace	
@@ -169,20 +201,29 @@
 	4. Indirect Taxes
 /-------------------------------------------------------*/
 	
-	*---------- Auxiliar - Sector - Product
-	import excel "$xls_sn", sheet("IO_percentage") firstrow clear
-	save "$presim/IO_percentage.dta", replace
-		
+	/*------ VAT
+
+	import excel "$xls_sn", sheet("TVA_aux_params") firstrow clear
+	levelsof globalname, local(globales)
+	foreach z of local globales {
+		levelsof globalcontent if globalname=="`z'", local(val)
+		global `z' `val'
+	}
 	
-	*---------- VAT
-	if $TVA_simplified == 0 {
+	if ("$country" == "GMB") {
+		global sect_fixed ""
+	}
+	*/	
 		
-		import excel "$xls_sn", sheet("TVA_raw") firstrow clear
+	if $TVA_simplified == 0 {
+		import excel "$xls_sn", sheet("IndTax_A_raw") firstrow clear
 		drop produit
 		drop if codpr==.
 		recode elasticities (.=0)
-		
+		tempfile VAT_original
+		save `VAT_original'
 		levelsof codpr, local(products)
+		global products "`products'"
 		foreach z of local products {
 			*dis `z'
 			levelsof TVA          if codpr==`z', local(vatrate)
@@ -196,35 +237,9 @@
 		}
 	}
 
-	*---------- Custom Duties
-
-	import excel "$xls_sn", sheet("CustomDuties_raw") firstrow clear
-	drop produit
-	drop if codpr==.
-	recode elasticities (.=0)
-	*tempfile VAT_original
-	*save `VAT_original'
-	
-	levelsof codpr, local(products)
-	global products "`products'"
-	foreach z of local products {
-		
-		levelsof rate          if codpr==`z', local(rate)
-		global cdrate_`z' `rate'
-		
-		*levelsof formelle     if codpr==`z', local(vatform)
-		*global vatform_`z' `vatform'
-		
-		levelsof imported     if codpr==`z', local(imported)
-		global cdimp_`z' `imported'
-		*levelsof elasticities if codpr==`z', local(vatelas)
-		*global vatelas_`z' `vatelas'
-	}
-
-	
 	*----------- Excises
 		
-	import excel "$xls_sn", sheet(Excises_raw) first clear
+	import excel "$xls_sn", sheet("IndTax_B_raw") first clear
 		
 	keep Produit cat Taux codpr_read elas ref
 		
@@ -253,18 +268,15 @@
 	sum cat2 if cat1 == "ex"
 	global n_excises_taux "`r(max)'"
 	
-	
-	
 
-	
 /*-------------------------------------------------------/
 	5. Subsidies
 /-------------------------------------------------------*/
 
 	*--------- Electricity
 
-	import excel "$xls_sn", sheet(Subvention_electricite_raw) first clear
-	
+	import excel "$xls_sn", sheet(Sub_1_raw) first clear
+			
 	drop if Tariff=="."
 
 	levelsof Type, local(types)
@@ -282,61 +294,49 @@
 		}
 	}
 		
-	*--------- Fuels
-	
-	*--------- Water
 
-
-	
 /*-------------------------------------------------------/
-	9. Inkind Transfers
+	6. Legend
 /-------------------------------------------------------*/
 
-	import excel "$xls_sn", sheet(qhealth_raw) first clear
-		
-	levelsof location, local(category)
-	foreach z of local category {
-		*di `z'
-		levelsof q_indexh          if location==`z', local(index)
-		global ink_qh_`z' `index'
+
+if $save_scenario ==1{
+	global c:all globals
+	macro list c
+
+	clear
+	gen globalname=""
+	gen globalcontent=""
+	local n=1
+	foreach glob of global c{
+		dis `"`glob' = ${`glob'}"'
+		set obs `n'
+		replace globalname="`glob'" in `n'
+		replace globalcontent=`"${`glob'}"' in `n'
+		local ++n
 	}
-	
-	
 
-	/*
-	import excel "$xls_sn", sheet(qeduc_raw) first clear
-		
-	levelsof location, local(category)
-	*global products "`products'"
-	foreach z of local category {
-		*di `z'
-		levelsof q_indexh          if location==`z', local(index)
-		global ink_qh_`z' `index'
+	foreach gloname in c thedo_pre theado thedo xls_sn data_out tempsim presim data_dev data_sn path S_4 S_3 S_level S_ADO S_StataSE S_FLAVOR S_OS S_OSDTL S_MACH save_scenario load_scenario devmode asserts_ref2018{
+		cap drop if globalname=="`gloname'"
 	}
-	*/
+
+	export excel "$xls_out", sheet("p_${scenario_name_save}") sheetreplace first(variable)
+	noi dis "{opt All the parameters of scenario ${scenario_name_save} have been saved to Excel.}"
 	
-/*
-	*==================================================================================
-	dis "=================   Social Security Contributions	==============="
-	*==================================================================================
-																			  
-	qui {
+	*Add saved scenario to list of saved scenarios
+	import excel "$xls_out", sheet(Legend) first clear cellrange(A1)
+	drop if Scenario_list==""
+	expand 2 in -1
+	replace Scenario_list="${scenario_name_save}" in -1
+	duplicates drop
+	gen ord=2
+	replace ord=1 if Scenario_list=="Ref_2018"
+	replace ord=3 if Scenario_list=="User_def_sce"
+	sort ord, stable
+	drop ord
+	
+	export excel "$xls_out", sheet(Legend, modify) cell(A2)
+}
 
-	import excel "$xls_sn", sheet(SecSocial_raw) first clear
-	tempfile sante_raaw_dta
-	save `sante_raaw_dta', replace 
-
-
-		levelsof Regime, local(tholds)
-		global tholdsAFAS "`tholds'"
-		foreach z of local tholds {
-			levelsof Rate if Regime=="`z'", local(AFASRate`z')
-			global `z'_Rate `AFASRate`z''
-			levelsof Max if Regime=="`z'", local(AFASMax`z')
-			global `z'_Max `AFASMax`z''
-		}
-
-		  
-	}
-*/
+ 
 

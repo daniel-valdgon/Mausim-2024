@@ -145,24 +145,14 @@ save `io_ind_elec', replace
 noi dis as result " 1. Subvention directe Fuel                        "
 ************************************************************************************
 
-global sub_kerosene = 5
-
 use "$presim/08_subsidies_fuel.dta", clear
 
-gen sub_1 = c_lpg * ${sub_lpg} / 100
-gen sub_2 = c_kerosene * ${sub_kerosene} / 100
-
-gen sub_3 = c_gasoline * ${sub_gasoline} / 100
-gen sub_4 = c_gasoil * ${sub_gasoil} / 100
-
-egen sub_fuel = rowtotal(sub_1 sub_2 sub_3 sub_4)
-
 rename sub_fuel subsidy_fuel_direct
-rename sub_1 subsidy_f1_direct
-rename sub_2 subsidy_f2_direct
-rename sub_3 subsidy_f3_direct 
-rename sub_4 subsidy_f4_direct 
 
+rename sub_gasoline subsidy_f1_direct 
+rename sub_gasoil subsidy_f2_direct
+rename sub_lpg subsidy_f3_direct
+rename sub_kerosene subsidy_f4_direct
 
 tempfile Fuel_subsidies_direct_hhid
 save `Fuel_subsidies_direct_hhid', replace
@@ -173,11 +163,12 @@ noi dis as result " 2. Subvention indirecte Fuel                       "
 
 use "$presim/IO_Matrix.dta", clear 
 
-global subsidy_shock = 3.3/100 * (0.0779 + 0.1273)/2
+global subsidy_shock_elec = 3.3/100 * 0.0817
+
+di $subsidy_shock_elec
 
 *Shock
-gen shock = $subsidy_shock if fuel_sec==1
-
+gen shock = $subsidy_shock_elec if fuel_sec==1
 replace shock=0  if shock==.
 
 *Indirect effects 
@@ -192,165 +183,19 @@ tempfile io_ind_fuel
 save `io_ind_fuel', replace
 
 
-************************************************************************************/
-noi dis as result " 1. Subvention -  Temwine                          "
-************************************************************************************
-
-global 	pr_label_5 	"Temwine"
-global 	pr_div_5	"departement"
-global 	pnbsf_PMT	0
-
-set seed 1234
-
-local i = 5
-
-import excel "$xls_sn", sheet(prog_`i'_raw) first clear
-drop if location ==.		
-			
-destring beneficiaires, replace	
-destring montant, replace		
-
-ren location ${pr_div_`i'}
-			
-keep ${pr_div_`i'} beneficiaires montant
-			
-save "$tempsim/${pr_div_`i'}_`i'.dta", replace 
-
-
-
-
-
-
-use  "$presim/08_subsidies_emel.dta", clear 
-
-
-gen sub_emel = uno * emel_prod * depan * ${sub_temwine}
-
-gen subsidy_emel_direct = sub_emel
-replace subsidy_emel_direct = ${max_am_temwine} if sub_emel > ${max_am_temwine}
-
-
-gcollapse (sum) subsidy_emel_direct (max) max_eleg_1 emel_prod, by(hhid hhsize)
-
-
-merge 1:1 hhid using   "$presim/07_dir_trans_PMT.dta", nogen  keepusing(wilaya) assert (matched)
-
-merge 1:1 hhid using "$presim/01_menages.dta" , nogen keepusing(hhweight) assert (matched)
-
-
-keep hhid hhweight hhsize wilaya subsidy_emel_direct
-
-ren wilaya departement
-
-gen pmt_seed_5 = uniform()
-gen eleg_5 = 1
-
-		*local i = 5
-		noi di "Program number `i', ${pr_label_`i'}, assigning by ${pr_div_`i'}"
-
-		gen benefsdep =.
-		gen montantdep =.		
-		merge m:1 departement /*region*/ using "$tempsim/${pr_div_`i'}_`i'.dta", nogen
-		replace benefsdep = beneficiaires
-		replace montantdep = montant
-		drop beneficiaires montant
-		
-
-			
-	if ($pnbsf_PMT ==0) {  // PMT targeting inside each department
-		
-		bysort departement (pmt_seed_`i'): gen potential_ben= sum(hhweight) if eleg_`i'==1
-		gen _e1=abs(potential_ben-benefsdep)
-		bysort departement: egen _e=min(_e1)
-		gen _icum=potential_ben if _e==_e1
-			gen numicum = (_icum!=.)
-			bysort departement numicum (_icum): gen rep = _n
-			replace _icum = . if rep>1
-		bysort departement: egen Beneficiaires_i=total(_icum)
-		bysort departement: egen _icum2_sd=sd(_icum)
-		assert _icum2_sd==.
-			sum benefsdep if _icum!=.
-			local realbenefs = r(sum)
-		drop _icum2_sd _icum _e _e1 rep
-		gen am = montantdep*(potential_ben<=Beneficiaires_i)
-		gen beneficiaire = (potential_ben<=Beneficiaires_i)
-		replace beneficiaire = 0 if benefsdep == 0 // This is a temporal fix that we should look at later. 
-		replace am = 0 if benefsdep ==0
-		drop Beneficiaires_i potential_ben numicum
-			sum hhweight if eleg_`i'==1
-			local potential = r(sum)
-			sum beneficiaire [iw=hhweight]
-			nois dis as text "Excel requested `realbenefs' beneficiary hh, and we assigned `r(sum)' of the potential `potential'"
-			if `potential'<=`r(sum)'{
-				nois dis as error "Check if assigning every potential beneficiary makes sense."
-			}
-	}
-	
-	if ($pnbsf_PMT ==1) {  // PMT targeting inside each department
-		
-		bysort departement (PMT_`i' pmt_seed_`i'): gen potential_ben= sum(hhweight) if eleg_`i'==1
-		gen _e1=abs(potential_ben-benefsdep)
-		bysort departement: egen _e=min(_e1)
-		gen _icum=potential_ben if _e==_e1
-			gen numicum = (_icum!=.)
-			bysort departement numicum (_icum): gen rep = _n
-			replace _icum = . if rep>1
-		bysort departement: egen Beneficiaires_i=total(_icum)
-		bysort departement: egen _icum2_sd=sd(_icum)
-		assert _icum2_sd==.
-			sum benefsdep if _icum!=.
-			local realbenefs = r(sum)
-		drop _icum2_sd _icum _e _e1 rep
-		gen am = montantdep*(potential_ben<=Beneficiaires_i)
-		gen beneficiaire = (potential_ben<=Beneficiaires_i)
-		replace beneficiaire = 0 if benefsdep == 0 // This is a temporal fix that we should look at later. 
-		replace am = 0 if benefsdep ==0
-		drop Beneficiaires_i potential_ben numicum
-			sum hhweight if eleg_`i'==1
-			local potential = r(sum)
-			sum beneficiaire [iw=hhweight]
-			nois dis as text "Excel requested `realbenefs' beneficiary hh, and we assigned `r(sum)' of the potential `potential'"
-			if `potential'<=`r(sum)'{
-				nois dis as error "Check if assigning every potential beneficiary makes sense."
-			}
-	}
-
-	
-	*ren am am_prog_`i'
-	*ren beneficiaire beneficiaire_prog_`i'
-	
-	gen am_prog_5 = beneficiaire * subsidy_emel_direct
-	
-	drop benefsdep montantdep
-		
-	
-	
-*}	
-
-*collapse (mean) am_prog_5, by(hhid)
-
-keep hhid am_prog_5
-ren am_prog_5 subsidy_emel_direct
-
-if $devmode== 1 {
-    save "$tempsim/Temwine.dta", replace
-}
-
-
-
 
 ************************************************************************************/
-noi dis as result " 1. Subvention - Agricultural Inputs                          "
+noi dis as result " 1. Subvention directe Food - EMEL                          "
 ************************************************************************************
 
-use "$presim/08_subsidies_fert.dta", clear
+use "$presim/08_subsidies_agric.dta", clear
 
+keep hhid subsidy_inag_direct subsidy_emel_direct
 
-gen subsidy_inag_direct = d_sub * ${sub_inag} * fert_val
+*gen sub_emel = max_eleg_1 * ( depan * 50/100 )
 
-keep hhid subsidy_inag_direct
-
-merge 1:1 hhid using "$tempsim/Temwine.dta", nogen
+*gen subsidy_emel_direct = sub_emel
+*replace subsidy_emel_direct = 19000 if sub_emel > 19000
 
 
 tempfile Agric_subsidies_direct_hhid
@@ -358,15 +203,17 @@ save `Agric_subsidies_direct_hhid', replace
 
 
 ************************************************************************************/
-noi dis as result " 2. Subvention indirecte à Temwine                       "
+noi dis as result " 2. Subvention indirecte à EMEL                       "
 ************************************************************************************
 
 use "$presim/IO_Matrix.dta", clear 
 
-global subsidy_shock_elec = (145 - 70) / 145 * 0.1498
+global subsidy_shock_elec = (145 - 70) / 145 * 0.0817
+
+di $subsidy_shock_elec
 
 *Shock
-gen shock = $subsidy_shock if emel_sec==1
+gen shock = $subsidy_shock_elec if emel_sec==1
 replace shock=0  if shock==.
 
 *Indirect effects 
@@ -392,8 +239,6 @@ save `io_ind_agric', replace
 // Adding indirect effect to database and expanding direct effect per product (codpr)
 use "$presim/05_netteddown_expenses_SY.dta", clear 
 
-keep hhid codpr sector pourcentage pondera_informal achats_net achats_net_excise informal_purchase achat_gross 
-
 merge m:1 hhid codpr using "$presim/08_subsidies_elect.dta", nogen keepusing(codpr_elec) keep(master match)
 
 merge m:1 hhid using `Elec_subsidies_direct_hhid', nogen assert(using matched) keep(matched)
@@ -408,10 +253,10 @@ merge m:1 sector using `io_ind_fuel', nogen assert(using matched) keep(matched)
 
 
 if $devmode== 1 {
-    save "$presim/Subsidies_check_correct_netdown.dta", replace
+    save "$tempsim/Subsidies_check_correct_netdown.dta", replace
 }
 
-use "$presim/Subsidies_check_correct_netdown.dta", clear
+use "$tempsim/Subsidies_check_correct_netdown.dta", clear
 
 *1. Removing direct subsidies
 replace subsidy_elec_direct = 0 if codpr_elec!=1

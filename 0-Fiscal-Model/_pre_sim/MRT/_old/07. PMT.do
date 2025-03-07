@@ -527,7 +527,7 @@ gen elmaouna = 1
 replace elmaouna = 0 if occupation == 1
 replace elmaouna = 0 if equipments == 1
 replace elmaouna = 0 if habitation == 1
-replace elmaouna = 0 if adults > 3
+replace elmaouna = 0 if adults > 2
 replace elmaouna = 0 if hhsize > 21
 
 *replace elmaouna = 0 if ratio > 1 & medium_livestock > 7 & large_livestock > 1
@@ -538,6 +538,7 @@ keep hid elmaouna
 
 tempfile elmaouna
 save `elmaouna', replace
+
 
 *==========================================================
 *Group of variables :  		Social Programs - Tekavoul, 
