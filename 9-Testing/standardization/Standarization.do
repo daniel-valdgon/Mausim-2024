@@ -171,7 +171,7 @@ if ("$stage" == "stage2") {
 		* Primary key
 		global primarykey "" 
 		foreach i of varlist _all {
-			if ( $`i'_id == 1) {
+			if ($`i'_id == 1) {
 				global primarykey "$primarykey `i'" 
 			}
 		}

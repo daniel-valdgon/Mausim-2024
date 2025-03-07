@@ -21,8 +21,8 @@ if "`c(username)'"=="gabriellombomoreno" {
 	global pathdata     	"/Users/gabriellombomoreno/Documents/WorldBank/Data/DATA_MRT" 
 	global path     		"/Users/gabriellombomoreno/Documents/WorldBank/Projects/01 MRT Fiscal Incidence Analysis"
 	
-	global tool         "${path}/3-Outputs/`c(username)'/Tool" 
-	global thedo     	"${path}/2-Scripts/`c(username)'/0-Fiscal-Model"
+	global tool         "${path}/03-Outputs/`c(username)'/Tool" 
+	global thedo     	"${path}/02-Scripts/`c(username)'/0-Fiscal-Model"
 }
 
 * Other user
@@ -37,9 +37,9 @@ if "`c(username)'"=="..." {
 	global data_sn 		"${pathdata}/MRT_2019_EPCV/Data/STATA/1_raw"
     global data_other   "${pathdata}/MRT_FIA_OTHER"
 
-	global presim       "${path}/1-Cleaned_data/2_pre_sim"
-	global tempsim      "${path}/1-Cleaned_data/3_temp_sim"
-	global data_out    	"${path}/1-Cleaned_data/4_sim_output"
+	global presim       "${path}/01-Data/2_pre_sim"
+	global tempsim      "${path}/01-Data/3_temp_sim"
+	global data_out    	"${path}/01-Data/4_sim_output"
 
 	* Tool	
 	global xls_sn 		"${tool}/SN_Sim_tool_VI.xlsx"
