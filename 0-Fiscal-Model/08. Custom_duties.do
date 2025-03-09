@@ -15,15 +15,11 @@
 -------------------------------------------------------------------*
 ===================================================================*/
 
+global informal_reduc_rate 0
 /* ---------------------------------------------------------------
 1.1  Creating the database for vatmat, with %exempted by Sector
  -----------------------------------------------------------------*/
 
-*We will use household consumption per product to estimate weighted shares of VAT rates, exemptions and informality at the sector level
-
-*1.1.1. Household data --> Product data
-
-*We will use household purchases per product to estimate weighted shares of VAT rates, exemptions and informality at the sector level
 
 use "$presim/05_purchases_hhid_codpr.dta", clear
 
@@ -37,19 +33,23 @@ tempfile prod_weights
 save `prod_weights'
 
 use `prod_weights', clear
-gen TVA=.
-gen formelle=.
-gen exempted=.
+gen rate=.
+*gen formelle=.
+gen imported=.
 
 levelsof codpr, local(produits)
 foreach prod of local produits {
-	replace TVA      = ${vatrate_`prod'} if codpr==`prod'
-	*replace formelle = ${vatform_`prod'} if codpr==`prod'
-	replace exempted = ${vatexem_`prod'} if codpr==`prod'
+	replace rate      = ${cdrate_`prod'} if codpr==`prod'
+	replace imported = ${cdimp_`prod'} if codpr==`prod'
 }
 
 replace depan      = 0 if depan==.
 replace depan      = depan*pourcentage
+
+ren rate TVA 
+*ren imported exempted
+
+gen exempted = imported == 0
 
 *1.1.2. Product data --> Sector data
 
@@ -143,20 +143,19 @@ noi dis as result " 2. Effet direct de la politique de TVA"
 clear
 gen codpr=.
 gen TVA=.
-gen formelle=.
+*gen formelle=.
 gen exempted=.
 local i=1
 foreach prod of global products {
 	set obs `i'
 	qui replace codpr	 = `prod' in `i'
-	qui replace TVA      = ${vatrate_`prod'} if codpr==`prod' in `i'
-	qui replace formelle = ${vatform_`prod'} if codpr==`prod' in `i'
-	qui replace exempted = ${vatexem_`prod'} if codpr==`prod' in `i'
+	qui replace TVA      = ${cdrate_`prod'} if codpr==`prod' in `i'
+	*qui replace formelle = ${vatform_`prod'} if codpr==`prod' in `i'
+	qui replace exempted = ${cdimp_`prod'} if codpr==`prod' in `i'
 	local i=`i'+1
 }
 tempfile VATrates
 save `VATrates'
-
 
 
 if $devmode== 1 {
@@ -165,6 +164,8 @@ if $devmode== 1 {
 else{
 	use `Excises_verylong', clear
 }
+
+keep hhid codpr informal_purchase achats*
 
 merge m:1 codpr using `VATrates', nogen keep(1 3)
 
@@ -183,61 +184,11 @@ ereplace achats_avec_excises = rowtotal(aux_f aux_i)
 bysort hhid codpr: egen x_aft=total(achats_avec_excises)
 
 * Check
-*assert inrange(x_bef,x_aft*0.9999, x_aft*1.0001)
-*if ("$country" != "SEN") assert inrange(x_bef,x_aft*0.9999, x_aft*1.0001) 
-
-*Check on Senegal informality: The data is unbalanced on the informal_purchase. 150 purchases and household don't have variable for formality. Therefore on the recalibration of the expenses the pre informality and post informarlity purchases are different. It is only 0.02% of the total expenses.  
-
 drop aux aux_f aux_i x_bef x_aft 
 
 gen TVA_direct = achats_avec_excises * TVA * (1-informal_purchase)
 
-
-*Water and electricity have special VAT policies 
-
-*Electricity:
-
-foreach payment in  0 1 {	
-	if "`payment'"=="1" local tpay "W"			// Prepaid (Woyofal)
-	else if "`payment'"=="0" local tpay "P"		// Postpaid
-	foreach pui in DPP DMP DGP{
-		if ("`pui'"=="DPP") local client=1
-		if ("`pui'"=="DMP") local client=2
-		if ("`pui'"=="DGP") local client=3
-		if strlen(`"${TariffT1_`tpay'`pui'}"')>0{ //This should skip those cases where the combination puissance*payment does not exist (basically WDGP)
-			foreach tranch of varlist tranche*_tool {
-				local i = real(substr("`tranch'",8,1))
-				cap gen TariffT`i' = 0
-				if strlen(`"${TariffT`i'_`tpay'`pui'}"')>0{
-					replace TariffT`i' = ${TariffT`i'_`tpay'`pui'} if type_client==`client' & prepaid_woyofal==`payment' & $incBlockTar == 1 //Versión de tarifas marginales
-				}
-				if $incBlockTar == 0 {																									 //Tarifas planas por hogar
-					levelsof tranche_elec_max if type_client==`client' & prepaid_woyofal==`payment', local(tmaxes)
-					foreach tmax of local tmaxes{
-						replace TariffT`i' = ${TariffT`tmax'_`tpay'`pui'} if type_client==`client' & prepaid_woyofal==`payment' & tranche_elec_max==`tmax'
-					}
-				}
-				cap gen vatratele_net_`i' = 0
-				replace vatratele_net_`i' = $vatrate_334 if type_client==`client' & prepaid_woyofal==`payment' & $VATregime_elec < `i' & $full_VAT_nonex_elec == 0  //Exempted below
-				replace vatratele_net_`i' = $vatrate_334 if type_client==`client' & prepaid_woyofal==`payment' & $VATregime_elec < tranche_elec_max & $full_VAT_nonex_elec == 1 //Pay if over
-			}
-		}
-	}
-}
-
-gen TVA_elec = 0
-foreach tranch of varlist tranche*_tool {
-	local i = real(substr("`tranch'",8,1))
-	replace TVA_elec = TVA_elec + TariffT`i'*tranche`i'_tool*vatratele_net_`i'
-}
-replace TVA_elec = TVA_elec*(1-informal_purchase)*6
-
-
-if $devmode== 1 {
-	save "$tempsim/dt08_post_electro.dta", replace
-}
-
-replace TVA_direct = TVA_elec if codpr==376
+*replace TVA_direct = TVA_elec if codpr==376
 
 
 *-------------------------------------------------------------------*
@@ -254,6 +205,7 @@ gen achats_avec_VAT = (achats_avec_excises + TVA_direct) * (1 + TVA_indirect_sho
 gen dif4 = achat_gross - achats_avec_VAT
 tab codpr if abs(dif4)>0.0001
 
+
 if $asserts_ref2018 == 1{
 	assert abs(dif4)<0.0001
 }
@@ -264,7 +216,7 @@ gen interaction_VATs = achats_avec_VAT-achats_avec_VAT2
 sum interaction_VATs, deta
 
 if $devmode== 1 {
-    save "$tempsim/FinalConsumption_verylong.dta", replace
+    save "$tempsim/FinalConsumption_verylong2.dta", replace
 }
 else{
 	save `FinalConsumption_verylong', replace
@@ -284,8 +236,11 @@ label var achats_avec_VAT "Purchases - All Subs. + Excises + VAT"
 replace TVA_indirect = TVA_indirect+interaction_VATs
 drop interaction_VATs
 
+ren (TVA_direct TVA_indirect) (CD_direct CD_indirect)
+
+
 if $devmode== 1 {
-	save "${tempsim}/VAT_taxes.dta", replace
+	save "${tempsim}/CustomDuties_taxes.dta", replace
 }
 
 tempfile VAT_taxes
