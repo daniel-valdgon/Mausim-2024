@@ -49,8 +49,6 @@ gen line_3 = 6.85 * 365 * `ppp' * `ppp_ipc19'
 gen double yd_pre= dtot / hhsize
 
 
-* Now casting from 2019 to 2024
-if $nowcast24 == 1 {
 /*	
 	local nc_ngdp_gr = 1.42570
 	local nc_rgdp_gr = 1.23099
@@ -58,6 +56,12 @@ if $nowcast24 == 1 {
 	local nc_ipc_gr = 1.24773
 	*local ppp_ipc = `ppp_ipc' * `nc_ipc_gr'
 */
+
+
+
+
+* Now casting from 2019 to 2024
+if $nowcast24 == 1 {
 
 	replace zref = zref * ${nc_ipc_gr}
 	*replace hhweight = hhweight * ${nc_pop_gr}
