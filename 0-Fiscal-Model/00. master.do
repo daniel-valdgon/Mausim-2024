@@ -1,37 +1,32 @@
-/*==============================================================================*\
- West Africa Mini Simulation Tool for indirect taxes (VAT)
- Authors: Madi Mangan, Gabriel Lombo, Daniel Valderrama
+/*============================================================================*\
+ Simulation Tool - Mauritania
+ Authors: Gabriel Lombo, Madi Mangan, Andrés Gallegos, Daniel Valderrama
  Start Date: January 2024
- Update Date: March 2024
- 
-\*==============================================================================*/
-   
-	*******************************************************************
-	***** GLOBAL PATHS ************************************************
-	
-	//Users (change this according to your own folder location)	
-	
+ Update Date: March 2025
+\*============================================================================*/
+  
 clear all
 macro drop _all
+ 
+*----- Define your directory path
+global path     	".../MauSim_Tool"
 
 
-* Gabriel - Personal Computer
+
+*===============================================================================
+// Set Up - Parameters
+*===============================================================================
+*----- Do not modify after this line
+
 if "`c(username)'"=="gabriellombomoreno" {
 			
-	global pathdata     	"/Users/gabriellombomoreno/Documents/WorldBank/Data/DATA_MRT" 
-	global path     		"/Users/gabriellombomoreno/Documents/WorldBank/Projects/01 MRT Fiscal Incidence Analysis"
+	global pathdata     "/Users/gabriellombomoreno/Documents/WorldBank/Data/DATA_MRT"
 	
-	global tool         "${path}/03-Outputs/`c(username)'/Tool" 
-	global thedo     	"${path}/02-Scripts/`c(username)'/0-Fiscal-Model"
+	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/01 MRT Fiscal Incidence Analysis"
+	
 }
 
-* Other user
-if "`c(username)'"=="..." {
-
-	global pathdata     	".../DATA_MRT/MRT_2019_EPCV/Data/STATA/1_raw" 
-	global path     		".../01 MRT Fiscal Incidence Analysis"
-
-}
+	*version 18
 
 	* Data
 	global data_sn 		"${pathdata}/MRT_2019_EPCV/Data/STATA/1_raw"
@@ -42,26 +37,44 @@ if "`c(username)'"=="..." {
 	global data_out    	"${path}/01-Data/4_sim_output"
 
 	* Tool	
-	global xls_sn 		"${tool}/SN_Sim_tool_VI.xlsx"
-	global xls_out    	"${tool}/SN_Sim_tool_VI.xlsx"	
+	*global tool         "${path}/03-Outputs" 
+	global tool         "${path}/03-Outputs/`c(username)'/Tool"	// 	  
+	global xls_sn 		"${tool}/MRT_Sim_tool_VI.xlsx"
+	global xls_out    	"${tool}/MRT_Sim_tool_VI.xlsx"	
 	
 	* Scripts	
-	global theado       "$thedo/ado"
+	*global thedo     	"${path}/02-Scripts"		
+	global thedo     	"${path}/02-Scripts/`c(username)'/0-Fiscal-Model" // 
+	global theado       "$thedo/ado"	
 	global thedo_pre    "$thedo/_pre_sim"
 	
 	scalar t1 = c(current_time)
 	
-// Global about the type of simulation.
-global devmode = 1  			// Indicates if we run a developers mode of the tool.
+	
+	// Global about the type of simulation.
+	global devmode = 1  		// Indicates if we run a developers mode of the tool.
 								// In the developers mode all the data is being saved 
 								// in .dta files in the subfolders in 3_temp_sim 
-global asserts_ref2018 = 0
-global run_presim = 1			// 1 = run presim and simulation, 0 = Run only simulation
-
-
+	global asserts_ref2018 = 0	
 	
 *===============================================================================
-// Run necessary ado files
+// Isolate Environment
+*===============================================================================
+
+sysdir set PLUS "${thedo}/ado"
+
+* Other packages: labutil shp2dta gtools vselect tab_chi ereplace 
+local user_commands //Add required user-written commands
+
+foreach command of local user_commands {
+	capture which `command'
+	if _rc == 111 {
+		ssc install `command'
+	}
+}
+	
+*===============================================================================
+// Run ado files
 *===============================================================================
 
 local files : dir "$theado" files "*.ado"
@@ -69,110 +82,93 @@ foreach f of local files{
 	 qui: cap run "$theado//`f'"
 }
 
+
 *===============================================================================
 // Run pre_simulation files (Only run once)
 *===============================================================================
-{
-if $run_presim == 1 {
 
-	
-	qui: include "$thedo_pre/01. Pullglobals.do" 
-	
-	qui: include "$thedo_pre/05. Spend_dta_purchases.do" 
+if (0) qui: do "${thedo_pre}/00. Master - Presim.do"
 
-	qui: include "$thedo_pre/01. Social_Security.do" 	
-
-	qui: include "$thedo_pre/02. Income_tax.do" 
-	
-	qui: include "$thedo_pre/07. PMT.do" 
-
-	qui: include "$thedo_pre/07. Direct_transfer.do" 
-	
-	qui: include "$thedo_pre/08. Subsidies_elect.do" 
-	
-	qui: include "$thedo_pre/08. Subsidies_agric.do" 
-
-	qui: include "$thedo_pre/08. Subsidies_fuel.do" 
-	
-	qui: include "$thedo_pre/09. Inkind Transfers.do" 
-
-	qui: include "$thedo_pre/Consumption_NetDown.do"
-	
-	noi di "You run the pre simulation do files"
-}	
-
-}
-	
-*******************************************************************
-//-Run do-files to the VAT simulation. // 
-{
-*-------------------------------------
-// 1. Pull Macros
-*-------------------------------------
-
-qui: include  "$thedo/01. Pullglobals.do"
+*===============================================================================
+// Run simulation files
+*===============================================================================
 
 *-------------------------------------
-// 1. Social Security
+// 00. Set up
 *-------------------------------------
 
-qui: include "$thedo/01. Social Contributions.do" 
+if (0) qui: do "${thedo}/00a. Dictionary.do"
+
+if (1) qui: do "${thedo}/00b. Pullglobals.do"
+
 
 *-------------------------------------
-// 2. Direct taxes
+// 01. Social Security Contributions
 *-------------------------------------
 
-qui: include "$thedo/02. Income Tax.do"
+if (1) qui: do "${thedo}/01. Social Security Contributions.do" 
 
 *-------------------------------------
-// 4. Direct transfers
+// 02. Direct Taxes
 *-------------------------------------
 
-qui: include "$thedo/04. Direct Transfer.do"
+if (1) qui: do "${thedo}/02. Direct Taxes - Income Tax.do" 
 
 *-------------------------------------
-// 6. Subsidies
+// 03. Direct Transfers
 *-------------------------------------
 
-qui: include "$thedo/06. Subsidies.do"
+if (1) qui: do "${thedo}/03. Direct Transfers.do" 
 
 *-------------------------------------
-// 7. Excises
+// 04. Indirect Taxes - Custom Duties
 *-------------------------------------
 
-qui: include "$thedo/07. Excise_taxes.do"
+if (1) qui: do "${thedo}/04. Indirect Taxes - Custom Duties.do" 
 
 *-------------------------------------
-// 5. Custom Duties
+// 05. Indirect Subsidies
 *-------------------------------------
 
-qui: include "$thedo/08. Custom_duties.do"
+if (1) qui: do "${thedo}/05. Indirect Subsidies.do" 
 
 *-------------------------------------
-// 8. VAT
+// 06. Indirect Taxes - Excises 
 *-------------------------------------
 
-qui: include "$thedo/08. Indirect_taxes.do"
+if (1) qui: do "${thedo}/06. Indirect Taxes - Excises.do"
+ 
+*-------------------------------------
+// 06. Indirect Taxes - VAT 
+*-------------------------------------
+ 
+ 
+if (1) qui: do "${thedo}/07. Indirect Taxes - VAT.do" 
 
 *-------------------------------------
-// 9. Inkind Transfers
+// 05. In-Kind Transfers
 *-------------------------------------
 
-qui: include "$thedo/09. InKind_Transfers.do"
+if (1) qui: do "${thedo}/08. In-Kind Transfers.do" 
 
 *-------------------------------------
-// 10. Final income aggregation
+// 06. Income Aggregates
 *-------------------------------------
 
-qui: include "$thedo/10. Income_Aggregate_cons_based.do"
+if (1) qui: do "${thedo}/09. Income Aggregates.do" 
 
 *-------------------------------------
-// 11. Process outputs
+// 07. Process outputs
 *-------------------------------------
 
-qui: include "$thedo/11. Output_scenarios.do"
+if (1) qui: do "${thedo}/10. Outputs - Tool.do" 
 
-if "`sce_debug'"=="yes" dis as error  "You have not turned off the debugging phase in ind tax dofile !!!"
+if (0) qui: do "${thedo}/10. Outputs - Figures.do" 
+
+
+if "`sce_debug'"=="yes" dis as error  ///
+	"You have not turned off the debugging phase in ind tax dofile !!!"
+
 
 *===============================================================================
 // Launch Excel
@@ -182,14 +178,9 @@ shell ! "$xls_out"
 
 scalar t2 = c(current_time)
 
-display "Running the complete tool took " (clock(t2, "hms") - clock(t1, "hms")) / 1000 " seconds"
+display "Running the complete tool took " ///
+	(clock(t2, "hms") - clock(t1, "hms")) / 1000 " seconds"
 
-}
 
-
-	
-	
-	
-	
-	
+* End of do-file
 	
