@@ -141,36 +141,37 @@
 	sum cat2  
 	global n_progs "`r(max)'"				
 
-forvalues i = 1/ $n_progs {
+	
+	forvalues i = 1/ $n_progs {
 
-	import excel "$xls_sn", sheet("DirectTransfers_raw") first clear	
-	
-	if "${pr_div_`i'}" == "departement"  | "${pr_div_`i'}" == "region"  {
-	
-		drop if location ==.				
-		destring beneficiaires, replace	
-		destring montant, replace		
+		import excel "$xls_sn", sheet("DirectTransfers_raw") first clear	
 		
-		keep if policy == "am_prog_`i'"
+		if "${pr_div_`i'}" == "departement"  | "${pr_div_`i'}" == "region"  {
 		
-		keep location beneficiaires montant	
-		
-		* As Parameters
-		levelsof location, local(location)
-		foreach z of local location {
+			drop if location ==.				
+			destring beneficiaires, replace	
+			destring montant, replace		
 			
-			levelsof beneficiaires if location == `z', local(beneficiaires`z')
-			global am_prog_`i'_ben_`z' `beneficiaires`z''
+			keep if policy == "am_prog_`i'"
 			
-			*levelsof montant if location == `z', local(montant`z')
-			*global am_prog_`i'_mon_`z' `montant`z''
-		} 			
+			keep location beneficiaires montant	
 			
-		ren location ${pr_div_`i'}
+			* As parameters
+			levelsof location, local(location)
+			foreach z of local location {
 				
-		save "$tempsim/${pr_div_`i'}_`i'.dta", replace 
+				levelsof beneficiaires if location == `z', local(beneficiaires`z')
+				global am_prog_`i'_ben_`z' `beneficiaires`z''
+				
+				*levelsof montant if location == `z', local(montant`z')
+				*global am_prog_`i'_mon_`z' `montant`z''
+			} 			
+				
+			ren location ${pr_div_`i'}
+					
+			save "$tempsim/${pr_div_`i'}_`i'.dta", replace 
+		}
 	}
-}
 
 	
 /*	levelsof region, local(region)
