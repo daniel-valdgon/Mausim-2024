@@ -1,36 +1,25 @@
-
-*--------------------------------------------------------------------------------
-* Program: Program for the Impact of Fiscal Reforms - CEQ for The Gambia, Senegal and Mauritania
-* Editted by: Madi Mangan
-* Date: April 2024
-* Version: 1.0
-*--------------------------------------------------------------------------------
-*--------------------------------------------------------------------------------
-
+/*============================================================================*\
+ Direct Transfers simulation
+ Authors: Gabriel Lombo
+ Start Date: January 2024
+ Update Date: April 2025
+\*============================================================================*/
+  
 set seed 123456789
 
-/**********************************************************************************/
-*noi dis as result " 1. Tekavoul "
-/**********************************************************************************/
+use  "$presim/07_dir_trans_PMT.dta", clear 
 
-*global prog_label "Tekavoul"
-*global prog_n 1
-*global eleg eleg_1
-*global targ PMT_1
-*global seed pmt_seed_1
+keep hhid PMT* eleg* departement pmt_seed* hhweight hhsize
+
+*-------------------------------------
+// Beneficiary Allocation: Tekavoul, Food Distribution, Shock Responsive
+*-------------------------------------
+
 
 global prog_hh 		""
 global prog_indiv 	""
 
-
-	use  "$presim/07_dir_trans_PMT.dta", clear 
-
-	keep hhid PMT* eleg* departement pmt_seed* hhweight hhsize
-
-
 forvalues i = 1/3 {
-	
-
 	
 	if "${pr_div_`i'}" == "departement" & "${pr_type_`i'}" == "hh" {
 	
@@ -43,7 +32,8 @@ forvalues i = 1/3 {
 		replace montantdep = montant
 		drop beneficiaires montant
 		
-		if (${tar_PMT_`i'} == 0) {  // PMT targeting inside each department
+		*----- Random
+		if (${tar_PMT_`i'} == 0) {  
 			
 			bysort departement (pmt_seed_`i'): gen potential_ben= sum(hhweight) if eleg_`i'==1
 			gen _e1=abs(potential_ben-benefsdep)
@@ -72,7 +62,8 @@ forvalues i = 1/3 {
 				}
 		}
 		
-		if (${tar_PMT_`i'} == 1) {  // PMT targeting inside each department
+		*----- PMT
+		if (${tar_PMT_`i'} == 1) {  
 			
 			bysort departement (PMT_`i' pmt_seed_`i'): gen potential_ben= sum(hhweight) if eleg_`i'==1
 			gen _e1=abs(potential_ben-benefsdep)
@@ -112,22 +103,12 @@ forvalues i = 1/3 {
 	}
 }
 
-	
-/**********************************************************************************/
-noi dis as result " 2. Universal Basic Transfer to household member who are at least 18 "
-/**********************************************************************************/
 
+*-------------------------------------
+// School feeding program allocation
+*-------------------------------------
 
-gen rev_universel = 0 // hhsize * $UBI_person  
-*nois dis as text "In Excel we request that each individual is given $" $UBI_person " as a UBI"
-	
-/**********************************************************************************/
-noi dis as result " 3. School Feeding Programme "
-/**********************************************************************************/
-
-	merge 1:m hhid  using  "$presim/07_educ.dta", nogen keepusing(hhid pmt_seed_4 eleg_4) // not matched ae
-	
-	
+merge 1:m hhid  using  "$presim/07_educ.dta", nogen keepusing(hhid pmt_seed_4 eleg_4) // not matched ae
 	
 forvalues i = 4/4 {
 		
@@ -142,11 +123,9 @@ forvalues i = 4/4 {
 		replace benefsdep = beneficiaires
 		replace montantdep = montant
 		drop beneficiaires montant
-		
-		*drop departement
-		*ren region departement
-			
-	if (${tar_PMT_`i'} ==0) {  // PMT targeting inside each department
+
+	*----- Random	
+	if (${tar_PMT_`i'} == 0) {
 		
 		bysort departement (pmt_seed_`i'): gen potential_ben= sum(hhweight) if eleg_`i'==1
 		gen _e1=abs(potential_ben-benefsdep)
@@ -174,8 +153,9 @@ forvalues i = 4/4 {
 				nois dis as error "Check if assigning every potential beneficiary makes sense."
 			}
 	}
-	
-	if (${tar_PMT_`i'} == 1) {  // PMT targeting inside each department
+
+	*----- PMT	
+	if (${tar_PMT_`i'} == 1) { 
 		
 		bysort departement (PMT_`i' pmt_seed_`i'): gen potential_ben= sum(hhweight) if eleg_`i'==1
 		gen _e1=abs(potential_ben-benefsdep)
@@ -213,16 +193,17 @@ forvalues i = 4/4 {
 	}	
 }	
 
+*-------------------------------------
+// Others
+*-------------------------------------
 
-/**********************************************************************************/
-noi dis as result " 5. Transfer to students in public institution"
-/**********************************************************************************/
-
+gen rev_universel = 0 
 gen rev_pubstu = 0 //prepri_sec * $transt_Pub_student
 
-****generates variables per household 
-****Remember that PNBSF and UBI are calculated at the household level,
-****but the school lunches is at the individual level
+*-------------------------------------
+// Data by household
+*-------------------------------------
+
 
 collapse (mean) $prog_hh rev_universel (sum) $prog_indiv, by(hhid)
 

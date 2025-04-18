@@ -1,61 +1,50 @@
-/*=============================================================================
-===============================================================================
-	Project:		Direct Taxes - Figures Scenarios
-	Author:			Gabriel 
-	Creation Date:	Oct 9, 2024
-	Modified:		
-	
-	Section: 		1. Names
-					2. Relative Incidence
-					3. Absolute Incidence
-					4. Marginal Contributions
-					5. Poverty and Inequality - Compare Scenarios
-					6. Map
-					
-	Note:
-===============================================================================
-==============================================================================*/
+/*============================================================================*\
+ Cross Subsidies Electricity - CEQ Mauritania
+ Authors: Gabriel Lombo
+ Start Date: January 2024
+ Update Date: April 2025
+\*============================================================================*/
 
 clear all
 macro drop _all
 
-local dirtr			"dirtransf_total am_prog_1 am_prog_2 am_prog_3 am_prog_4"
-local dirtax		"dirtax_total income_tax_1 income_tax_2 income_tax_3"
-local sub			"subsidy_total subsidy_elec_direct subsidy_elec_indirect subsidy_emel subsidy_emel_direct subsidy_emel_indirect"
-local indtax		"indtax_total excise_taxes Tax_TVA TVA_direct TVA_indirect"
-local inktr			"inktransf_total"
-
-* Gabriel
-if "`c(username)'"=="gabriellombomoreno" {
+* Gabriel - Personal Computer
+if "`c(username)'"=="gabriellombomoreno" {			
+	global pathdata     "/Users/gabriellombomoreno/Documents/WorldBank/Data/DATA_MRT" 
+	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/01 MRT Fiscal Incidence Analysis"
 	
-	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/Mausim_2024"
-	*global report 		"${path}/04. Reports/7. Summary/2. Presentation/Figures"
-	global thedo     	"${path}/02. Scripts"
-
-	global xls_out		"${path}/03. Tool/99_Elec.xlsx"
-	global xls_sn    	"${path}/03. Tool/SN_Sim_tool_VI_`c(username)'.xlsx"
+	global tool         "${path}/03-Outputs/`c(username)'/Tool" 
+	global thedoSim     "${path}/02-Scripts/`c(username)'/0-Fiscal-Model"
+	global thedo     	"${path}/02-Scripts/`c(username)'/1-Specials"
 	
-	* Set Parameters
-	global numscenarios	3
+}
 	
-	global proj_1		"v1_RefElec" 
-	global proj_2		"v1_ReformElec2"
-	global proj_3		"v1_ReformElecCM"  
-	global proj_4		""
-	global proj_5		""
-
-	global policy		"subsidy_elec subsidy_elec_direct subsidy_elec_indirect"	
+	*----- Figures parameters
+	global numscenarios	2
+	global proj_1		"MRT_RefScen_2019" 
+	global proj_2		"Sim6_CM_ElecTariff"
+	global proj_3		""
+	
+	global policy		"subsidy_f1_direct subsidy_f2_direct subsidy_f3_direct"
 	
 	global income		"yd" // ymp, yn, yd, yc, yf
 	global income2		"yc"
-	global reference 	"zref" // Only one
-}
+	global reference 	"zref" // Only one	
+	
+	*----- Data
+	global data_sn 		"${pathdata}/MRT_2019_EPCV/Data/STATA/1_raw"
+    global data_other   "${dathdata}/MRT_FIA_OTHER"
 
-	global allpolicy	"dirtax_total sscontribs_total dirtransf_total subsidy_total indtax_total inktransf_total" 
-	global data_sn 		"${path}/01. Data/1_raw/MRT"    
-	global presim       "${path}/01. Data/2_pre_sim/MRT"
-	global data_out    	"${path}/01. Data/4_sim_output"
-	global theado       "$thedo/ado"	
+	global presim       "${path}/01-Data/2_pre_sim"
+	global tempsim      "${path}/01-Data/3_temp_sim"
+	global data_out    	"${path}/01-Data/4_sim_output"
+
+	*----- Tool
+	global xls_sn 		"${tool}/MRT_Sim_tool_VI.xlsx"
+	global xls_out    	"${tool}/Specials/CrossSubsidies_Electricity.xlsx"	
+	
+	*----- Ado	
+	global theado       "$thedoSim/ado"
 
 	scalar t1 = c(current_time)
 	
@@ -65,14 +54,13 @@ if "`c(username)'"=="gabriellombomoreno" {
 
 cap run "$theado//_ebin.ado"	
 
-/*-------------------------------------------------------/
-	0. Validation and Assumptions
-/-------------------------------------------------------*/
+*==============================================================================
+// Figures
+*==============================================================================
 
-/*-------------------------------------------------------/
-	A. Reference Scenario
-/-------------------------------------------------------*/
-
+*-------------------------------------
+// A. Boxplot
+*-------------------------------------
 
 *------ Load Data
 local scenario 1
@@ -111,7 +99,6 @@ putexcel A15 = matrix(A2), names
 /-------------------------------------------------------*/
 
 *------ Data preparation: Index
-
 forvalues scenario = 1/$numscenarios {
 
 	*local scenario 1
@@ -179,11 +166,12 @@ forvalues i = 1/$numscenarios {
 	tabm tek*`i' [iw = hhweight] if hh_elec == 1, matcell(C`i')
 }
 
-mat T = (B1, B2, B3) \ (C1, C2, C3)
+mat T = (B1, B2) \ (C1, C2)
 
 mat rownames T = Subsidized Social Domestic Top20 Bottom40 Payer Social Domestic Top20 Bottom40 CashTransf Top20 Bottom40 
-mat colnames T = No Yes No Yes No Yes
+mat colnames T = No Yes No Yes
 matlist T
+
 
 putexcel set "${xls_out}", sheet("HHImpact") modify
 putexcel A1 = matrix(T), names
@@ -218,9 +206,9 @@ forvalues i = 2/$numscenarios {
 	tabm st*`i' [iw = hhweight] if hh_elec == 1, matcell(D`i')
 }
 
-mat D = D2, D3
+mat D = D2 //, D3
 mat rownames D = Lose Win Ch_pos Ch_neg Ch_cashtr Ch_pos Ch_neg
-mat colnames D = No Yes No Yes
+mat colnames D = No Yes //No Yes
 matlist D
 
 putexcel set "${xls_out}", sheet("HHImpact") modify

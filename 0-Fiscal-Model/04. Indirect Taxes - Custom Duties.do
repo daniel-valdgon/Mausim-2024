@@ -1,17 +1,10 @@
-/*==============================================================================
- Senegal Indirect taxes
- Author: Andres Gallegos
- Date: May 2023
- Version: 1.0
-
- Notes: 
-	*
-
-*========================================================================================*/
-
-global informal_reduc_rate 0
-
-
+/*============================================================================*\
+ Indirect Taxes simulation - Custom Duties
+ Authors: Gabriel Lombo
+ Start Date: January 2024
+ Update Date: April 2025
+\*============================================================================*/
+ 
 clear
 gen codpr=.
 gen CD=.
@@ -28,6 +21,10 @@ tempfile CDrates
 save `CDrates'
 
 
+*-------------------------------------
+// Direct Effect
+*-------------------------------------
+
 use "$presim/05_netteddown_expenses_SY.dta", clear
 *use "$tempsim/Excises_verylong.dta", clear
 
@@ -39,13 +36,12 @@ replace CD = 0 if imported == 0
 
 tab CD imported
 
-
 gen CD_direct = achats_net * CD // * (1 - informal_purchase)
 
 
-*-------------------------------------------------------------------*
-*		Merging direct and indirect VAT, and confirmation
-*-------------------------------------------------------------------*
+*-------------------------------------
+// Income definition
+*-------------------------------------
 
 *gen achats_avec_VAT = (achats_avec_excises + CD_direct)
 gen achats_avec_CD = (achats_net + CD_direct)
@@ -60,13 +56,18 @@ if $asserts_ref2018 == 1 {
 	assert abs(dif4)<0.0001
 }
 
-
 if $devmode== 1 {
     save "$tempsim/FinalConsumption_verylong.dta", replace
 }
 else{
 	save `FinalConsumption_verylong', replace
 }
+
+*-------------------------------------
+// Data by household
+*-------------------------------------
+
+
 
 collapse (sum) CD_direct achats_net achats_avec_CD /*achats_avec_excises achats_sans_subs achats_sans_subs_dir*/, by(hhid)
 

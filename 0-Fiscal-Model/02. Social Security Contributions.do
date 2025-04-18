@@ -1,12 +1,10 @@
-/*--------------------------------------------------------------------------------
-*--------------------------------------------------------------------------------
- Program: CEQ Mauritania
- Author: Gabriel
- Date: 2024
+/*============================================================================*\
+ SSC simulation
+ Authors: Gabriel Lombo
+ Start Date: January 2024
+ Update Date: April 2025
+\*============================================================================*/
  
-
-*--------------------------------------------------------------------------------*/
-
 use  "$presim/01_social_security.dta", replace 
 
 *keep hhid ss_ben* ss_cont*
@@ -27,15 +25,6 @@ gen ss_ben_old = ${soc_cont} * ${pen_old} * pen_old
 gen ss_ben_other = ${soc_cont} * ${pen_other} * pen_other
 
 egen ss_ben =  rowtotal(ss_ben_old ss_ben_other)
-
-/*
-if $run_ss == 0 {
-	
-	foreach i of varlist ss_contrib_pub-ss_ben {
-		replace `i' = 0
-	}
-}
-*/
 
 collapse (sum) ss_ben* ss_contrib_pub ss_contrib_pri, by(hhid)
 

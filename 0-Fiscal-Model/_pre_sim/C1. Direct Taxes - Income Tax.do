@@ -1,24 +1,10 @@
-/*=============================================================================
-
-	Project:		Direct Taxes - Presim
-	Author:			Gabriel 
-	Creation Date:	July 18, 2024
-	Modified:		
-	
-	Note: 
-	
-==============================================================================*/
-
-/*
-	Output: 02_Income_tax_input.dta
-
-	Income
-	Exemptions
-	Allowances
-	Tax Base
-	Rate
-	Tranches or regime
-*/
+/*============================================================================*\
+ Direct Taxes
+ Authors: Gabriel Lombo
+ Start Date: July 2024
+ Update Date: April 2025
+\*============================================================================*/
+ 
 	
 /*-------------------------------------------------------/
 	0. Prep Data

@@ -1,8 +1,9 @@
+
 /*============================================================================*\
- Purpose: Netting down household expenditures for Subsidies and Indirect Taxes
- 
- Editted by: Gabriel Lombo
- Last Updated: March 2025
+ To do: Netting down
+ Author: Gabriel Lombo
+ Start Date: March 2024
+ Update Date: April 2025
 \*============================================================================*/
   
 
@@ -14,7 +15,6 @@ noi dis "We want to take household purchases and remove the direct and indirect 
 // Policy Expenditures
 *===============================================================================
 * Reverse order. VAT, Excises, Subsidies, Custom Duties
-* Parameters sheets: VAT, Excises, Subsidies, Custom Duties...
 
 *-------------------------------------
 // 1. Expanding IO - Matrix
@@ -141,13 +141,14 @@ gen codpr=.
 gen TVA=.
 gen formelle=.
 gen exempted=.
+
 local i=1
 foreach prod of global products {
 	set obs `i'
 	qui replace codpr	 = `prod' in `i'
-	qui replace TVA      = ${vatrate_`prod'} if codpr==`prod' in `i'
-	qui replace formelle = ${vatform_`prod'} if codpr==`prod' in `i'
-	qui replace exempted = ${vatexem_`prod'} if codpr==`prod' in `i'
+	qui replace TVA      = ${vatrate_`prod'} if codpr == `prod' in `i'
+	qui replace formelle = ${vatform_`prod'} if codpr == `prod' in `i'
+	qui replace exempted = ${vatexem_`prod'} if codpr == `prod' in `i'
 	local i = `i' + 1
 }
 tempfile VAT_rates_SY
@@ -162,6 +163,7 @@ gen excise = .
 
 forvalues j = 1/$n_excises_taux {
 	
+	local j = 1
 	* Gen local of products lenght
 	gen n = length("${codpr_read_ex_`j'}") - length(subinstr("${codpr_read_ex_`j'}", " ", "", .)) + 1
 	qui sum n

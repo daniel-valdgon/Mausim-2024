@@ -1,8 +1,11 @@
-
-/**********************************************************************************
-*            			1. Preparing data 
-**********************************************************************************/ 
+/*============================================================================*\
+ Electricity Subsidies
+ Authors: Gabriel Lombo
+ Start Date: September 2024
+ Update Date: 
+\*============================================================================*/
  
+
 /*------------------------------------------------
 * Loading data
 ------------------------------------------------*/
@@ -90,9 +93,6 @@ global purchases depan
 
 gen hh_elec_3 = $purchases > 0 // Option 3: Positive expenses on depan 
 gen hh_elec = $purchases > 0 & I8 == 1
-
-*if ($hh_coverage == 1) gen hh_elec = depan > 0 & I8 == 1
-*if ($hh_coverage == 2) gen hh_elec = depan > 0 & G7 == 1 // Djibril Option
 
 /*------------------------------------------------
 * Allocation of domestic and social users

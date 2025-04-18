@@ -97,9 +97,10 @@ if $save_scenario == 1 {
 	sort ord, stable
 	drop ord
 	
-	export excel "$xls_out", sheet(Scenario, modify) cell(A2)
+	export excel "$xls_out", sheet("Scenario", modify) cell(A2)
 }
 
+	
 	
 *===============================================================================
 		*Produce Concentration by centile_pc
@@ -142,9 +143,10 @@ foreach rank in ymp yn yd yc yf {
 	}	
 	order `rank'_centile_pc, first
 	
-	export excel using "$xls_out", sheet("conc`rank'_${sheetname}") sheetreplace first(variable) locale(C)  nolabel
-	*export excel using "$xls_sn", sheet("concentration") sheetreplace first(variable)
+	export excel using "$xls_out", sheet("conc`rank'_${sheetname}") sheetreplace first(variable) // locale(C)  nolabel
 }
+
+
 
 *===============================================================================
 		*Netcash Position
@@ -377,6 +379,7 @@ save `trans'
 	
 	tempfile aux1
 	save `aux1'
+	
 * benefits, coverage beneficiaries by yd
 	use "$data_out/output",  clear	
 	
@@ -394,7 +397,5 @@ save `trans'
 	
 	
 	export excel "$xls_out", sheet("all${sheetname}") sheetreplace first(variable)
-	*export excel "$xls_sn", sheet("all" ) sheetreplace first(variable)
 
 
-*noi dis "{opt .......... Scenario ${sheetname} processed and saved! }"

@@ -8,13 +8,14 @@
 *----- User Paths
 if "`c(username)'"=="gabriellombomoreno" {
 
-	global country		"SEN" 
-	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/01 AFW Fiscal Incidence Analysis"
+	global country		"MRT" 
+	*global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/01 AFW Fiscal Incidence Analysis"
 
+	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/01 MRT Fiscal Incidence Analysis"
+	
 	* Tool Sheet names Parameters
-	global raw_sheets	"DirTax_raw Aux_direct_transfers_raw prog_1_raw prog_2_raw prog_3_raw prog_4_raw prog_5_raw Subvention_fuel_raw Subvention_electricite_raw TVA_raw CustomDuties_raw Excises_raw qeduc_raw qhealth_raw AuxParams_raw IO_percentage IO_matrix Policy"
-	
-	
+	global raw_sheets	"Policy Params_raw Params_region_raw Params_prod_raw Params_tranches_1_raw Params_tranches_2_raw IO_matrix IO_percentage Params_ref_raw Params_prod_ref_raw"
+
 }
 
 *----- Folder and Files	 
@@ -22,18 +23,18 @@ if "`c(username)'"=="gabriellombomoreno" {
 *global data_sn 	"${pathdata}/MRT_2019_EPCV/Data/STATA/1_raw"
 *global data_other  "${pathdata}/MRT_FIA_OTHER"
 
-global presim       "${path}/01-Data/2_pre_sim/${country}"
+global presim       "${path}/01-Data/2_pre_sim/"
 global tempsim      "${path}/01-Data/3_temp_sim"
 global data_out    	"${path}/01-Data/4_sim_output"
 
 * Scripts	
-global thedo     	"${path}/2-Scripts/`c(username)'/0-Fiscal-Model"
+global thedo     	"${path}/02-Scripts/`c(username)'/0-Fiscal-Model"
 global theado       "$thedo/ado"
 global thedo_pre    "$thedo/_pre_sim"
 
 * Tool	
 global tool         "${path}/03-Outputs/`c(username)'/Tool" 	
-global xls_sn 		"${tool}/Inputs/SN_Sim_tool_VI_${country}_ref.xlsx"
+global xls_sn 		"${tool}/MRT_Sim_tool_VI.xlsx"
 global xls_out    	"${tool}/Dictionary.xlsx"
 
 
@@ -138,7 +139,7 @@ foreach i of global read_sheets  {
 
 	local counter = `counter' + 1	
 	
-}
+} 
 
 clear
 local ncounter = `counter' - 1
@@ -169,7 +170,7 @@ ren name varname
 order filetype filename varname vartype varpk varlab
 
 * Print Data	
-export excel using "$xls_out", sheet("${country}_dictionary") sheetreplace first(variable) locale(C)  nolabel
+export excel "$xls_out", sheet("MRT_dictionary") first(variable) sheetreplace 
 
 
 

@@ -1,16 +1,21 @@
-/********************************************************************************
-********************************************************************************
-* Program: Subsidies
-* Date: March 2024
-* Version: 1.0
+/*============================================================================*\
+ Simulation Tool - Mauritania
+ Authors: Gabriel Lombo, Madi Mangan, Andrés Gallegos, Daniel Valderrama
+ Start Date: January 2024
+ Update Date: April 2025
+\*============================================================================*/
+  
 
-Modified: Generalize the electricity subsidies to include fixed cost 
-			
-*--------------------------------------------------------------------------------
 
-************************************************************************************/
-noi dis as result " 1. Subvention directe à l'Électricité                          "
-************************************************************************************
+*===============================================================================
+// Policies
+*===============================================================================
+
+
+*-------------------------------------
+// 1. Electricity - Direct Effect
+*-------------------------------------
+
 
 *use "$presim/05_netteddown_expenses_SY.dta", clear
 
@@ -122,9 +127,9 @@ forval i=1/7{
 tempfile Elec_subsidies_direct_hhid
 save `Elec_subsidies_direct_hhid'
 
-************************************************************************************/
-noi dis as result " 2. Subvention indirecte à l'Électricité                        "
-************************************************************************************
+*-------------------------------------
+// 2. Electricity - Indirect Effect
+*-------------------------------------
 
 use "$presim/IO_Matrix.dta", clear 
 
@@ -144,9 +149,9 @@ tempfile io_ind_elec
 save `io_ind_elec', replace
 
 
-************************************************************************************/
-noi dis as result " 1. Subvention directe Fuel                        "
-************************************************************************************
+*-------------------------------------
+// 3. Fuel - Direct Effect
+*-------------------------------------
 
 use "$presim/08_subsidies_fuel.dta", clear
 
@@ -166,9 +171,9 @@ rename sub_lpg subsidy_f3_direct
 tempfile Fuel_subsidies_direct_hhid
 save `Fuel_subsidies_direct_hhid', replace
 
-************************************************************************************/
-noi dis as result " 2. Subvention indirecte Fuel                       "
-************************************************************************************
+*-------------------------------------
+// 4. Fuel - Indirect Effect
+*-------------------------------------
 
 use "$presim/IO_Matrix.dta", clear 
 
@@ -191,33 +196,9 @@ tempfile io_ind_fuel
 save `io_ind_fuel', replace
 
 
-************************************************************************************/
-noi dis as result " 1. Subvention -  Temwine                          "
-************************************************************************************
-
-global 	pr_label_5 	"Temwine"
-global 	pr_div_5	"departement"
-global 	pnbsf_PMT	0
-
-set seed 1234
-
-local i = 5
-
-import excel "$xls_sn", sheet(prog_`i'_raw) first clear
-drop if location ==.		
-			
-destring beneficiaires, replace	
-destring montant, replace		
-
-ren location ${pr_div_`i'}
-			
-keep ${pr_div_`i'} beneficiaires montant
-			
-save "$tempsim/${pr_div_`i'}_`i'.dta", replace 
-
-
-
-
+*-------------------------------------
+// 5. Temwine (Emel)
+*-------------------------------------
 
 
 use  "$presim/08_subsidies_emel.dta", clear 
@@ -228,14 +209,11 @@ gen sub_emel = uno * emel_prod * depan * ${sub_temwine}
 gen subsidy_emel_direct = sub_emel
 replace subsidy_emel_direct = ${max_am_temwine} if sub_emel > ${max_am_temwine}
 
-
 collapse (sum) subsidy_emel_direct (max) max_eleg_1 emel_prod, by(hhid hhsize)
-
 
 merge 1:1 hhid using   "$presim/07_dir_trans_PMT.dta", nogen  keepusing(wilaya) assert (matched)
 
 merge 1:1 hhid using "$presim/01_menages.dta" , nogen keepusing(hhweight) assert (matched)
-
 
 keep hhid hhweight hhsize wilaya subsidy_emel_direct
 
@@ -249,14 +227,14 @@ gen eleg_5 = 1
 
 		gen benefsdep =.
 		gen montantdep =.		
-		merge m:1 departement /*region*/ using "$tempsim/${pr_div_`i'}_`i'.dta", nogen
+		merge m:1 departement /*region*/ using "$tempsim/${pr_div_5}_5.dta", nogen
 		replace benefsdep = beneficiaires
 		replace montantdep = montant
 		drop beneficiaires montant
 		
 
 			
-	if ($pnbsf_PMT ==0) {  // PMT targeting inside each department
+	if ($tar_PMT_5 ==0) {  // PMT targeting inside each department
 		
 		bysort departement (pmt_seed_`i'): gen potential_ben= sum(hhweight) if eleg_`i'==1
 		gen _e1=abs(potential_ben-benefsdep)
@@ -285,7 +263,7 @@ gen eleg_5 = 1
 			}
 	}
 	
-	if ($pnbsf_PMT ==1) {  // PMT targeting inside each department
+	if ($tar_PMT_5 ==1) {  // PMT targeting inside each department
 		
 		bysort departement (PMT_`i' pmt_seed_`i'): gen potential_ben= sum(hhweight) if eleg_`i'==1
 		gen _e1=abs(potential_ben-benefsdep)
@@ -314,20 +292,11 @@ gen eleg_5 = 1
 			}
 	}
 
-	
-	*ren am am_prog_`i'
-	*ren beneficiaire beneficiaire_prog_`i'
-	
 	gen am_prog_5 = beneficiaire * subsidy_emel_direct
 	
 	drop benefsdep montantdep
 		
 	
-	
-*}	
-
-*collapse (mean) am_prog_5, by(hhid)
-
 keep hhid am_prog_5
 ren am_prog_5 subsidy_emel_direct
 
@@ -337,23 +306,9 @@ if $devmode== 1 {
 
 
 
-
-************************************************************************************/
-noi dis as result " 1. Subvention - Agricultural Inputs                          "
-************************************************************************************
-
-use "$presim/08_subsidies_fert.dta", clear
-
-
-gen subsidy_inag_direct = d_sub * ${sub_inag} * fert_val
-
-keep hhid subsidy_inag_direct
-
-merge 1:1 hhid using "$tempsim/Temwine.dta", nogen
-
-
-tempfile Agric_subsidies_direct_hhid
-save `Agric_subsidies_direct_hhid', replace
+*-------------------------------------
+// 7. Temwine (Emel) - Indirect Effects 
+*-------------------------------------
 
 
 ************************************************************************************/
@@ -383,9 +338,29 @@ tempfile io_ind_agric
 save `io_ind_agric', replace
 
 
-/***********************************************************************************
-*TESTS
-***********************************************************************************/
+*-------------------------------------
+// 6. Agricultural Inputs
+*-------------------------------------
+
+use "$presim/08_subsidies_fert.dta", clear
+
+
+gen subsidy_inag_direct = d_sub * ${sub_inag} * fert_val
+
+keep hhid subsidy_inag_direct
+
+merge 1:1 hhid using "$tempsim/Temwine.dta", nogen
+
+
+tempfile Agric_subsidies_direct_hhid
+save `Agric_subsidies_direct_hhid', replace
+
+
+
+
+*===============================================================================
+// Tests
+*===============================================================================
 
 *-------- Welfare 
 // Adding indirect effect to database and expanding direct effect per product (codpr)

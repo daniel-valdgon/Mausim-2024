@@ -1,17 +1,10 @@
-
-
-/*
-Author     : Gabriel Lombo
-Start date : 24 April 2024
-Last Update: 24 April 2024 
-
-Objective  : Presimulation for Direct Transfer for the purpose of fiscal microsimulation to study the incidence of Direct transfer
-           **I compile and adopt the key characteristics of the household necessary for assignment of social programmes 
-*/
-
-*global path			"/Users/gabriellombomoreno/Documents/WorldBank/Mausim_2024"
-*global data_sn 		"${path}/01_data/1_raw/MRT"    
-*global presim 		"${path}/01_data/2_pre_sim/MRT"    
+/*============================================================================*\
+ PMT
+ Authors: Gabriel Lombo
+ Start Date: April 2024
+ Update Date: April 2025
+\*============================================================================*/
+   
 
 set seed 123456789
 

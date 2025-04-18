@@ -1,18 +1,18 @@
-*--------------------------------------------------------------------------------
-*--------------------------------------------------------------------------------
-* Program: CEQ West Africa -  7. Excise Taxes					
-* Author: Julieth Pico
-* Date: June 2020
-* Version: 1.1
-* Modified: September 2022
-*			- Streamlined, take part to pre_sim
-*			May 2023 (AG)
-*			- Included new excises from recent laws
-*			- Excel TVA rates taken into account (before they were hardcoded as 1.18)
-*			March 2024 - Gabriel Lombo
-*			- Standardize dofile for different countries according to Excises_raw sheet
-*--------------------------------------------------------------------------------
+/*============================================================================*\
+ Excise Taxes simulation
+ Authors: Gabriel Lombo, Andrés Gallegos, Madi Mangan, Julieth Pico
+ Start Date: June 2020
+ Update Date: April 2025
 
+ Modified: September 2022
+			- Streamlined, take part to pre_sim
+			May 2023 (AG)
+			- Included new excises from recent laws
+			- Excel TVA rates taken into account (before they were hardcoded as 1.18)
+			March 2024 - Gabriel Lombo
+			- Standardize dofile for different countries according to Excises_raw sheet
+\*============================================================================*/
+  
 
 if $devmode== 1 {
     *use "$tempsim/Subsidies_verylong.dta", clear
@@ -23,19 +23,11 @@ else{
 	use`Subsidies_verylong', clear
 }
 
-*gen achats_sans_subs = achats_net_excise
-*keep hhid codpr achats_sans_subs achats_net_excise informal_purchase
-		
 global income achats_net_excise
 
-* Check
-*tab codpr [iw = achat_gross] if inrange(codpr, 134, 150)
-
-
-*********************************************************
-*2. Calculate expenses from products with excises
-*********************************************************
-
+*-------------------------------------
+// Calculate expenses from products with excises
+*-------------------------------------
 
 qui {
 forvalues j = 1/$n_excises_taux {
@@ -105,7 +97,9 @@ tempfile Excises_verylong
 save `Excises_verylong'
 
 
-*Finally, we are only interested in the per-household amounts, so we will collapse the database:
+*-------------------------------------
+// Data by household
+*-------------------------------------
 
 collapse (sum) dep_* ex_* excise_taxes, by(hhid)
 
@@ -123,11 +117,6 @@ if $devmode== 1 {
 
 tempfile Excise_taxes
 save `Excise_taxes'
-
-* CHECK...
-merge m:1 hhid using "$presim/01_menages.dta" , nogen keepusing(hhweight)
-
-tabstat ex_* excise_taxes [aw = hhweight], s(sum)
 
 
 

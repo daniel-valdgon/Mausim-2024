@@ -1,32 +1,16 @@
 
-/*--------------------------------------------------------------------------------
-*--------------------------------------------------------------------------------
-* Program: Program for the Impact of Fiscal Reforms - CEQ Senegal
-* Author: Julieth Pico based on Disposable Income by Mayor Cabrera
-* Date: June 2020
-* Version: 1.0
-
-*Version 2: 
-			- Streamlined
+/*============================================================================*\
+ Direct Taxes simulation
+ Authors: Julieth Pico based on Disposable Income by Mayor Cabrera
+ Start Date: June 2020
+ Update Date: April 2025
+ 
+ Modifications: 
+ 			- Streamlined
 			- Added VAT exempt policies
-			- Change gratuite services as cash transfers: am_subCMU am_sesame am_moin5 am_cesarienne. Pendent to ask about am_subCMU
-
-*--------------------------------------------------------------------------------
-*--------------------------------------------------------------------------------
-
-****************************************************************************/
-
-
-*Constructing DisposableIncome
-/*
-Disposable Income = Consumption Aggregate of HHD Survey
-Calculate poverty using Consumption Aggregate of Survey
-To estimate Per Capita Disposable Income, it is necessary to identify only members of the household
-Check new poverty estimates
-*/
-
-*****************************************************************************
-
+			- Nowcasting and policies labels hardcoded
+\*============================================================================*/
+  
 
 use "$presim/01_menages.dta", clear
 
@@ -36,10 +20,13 @@ foreach var in csh_mutsan am_bourse am_subCMU am_sesame am_moin5 am_cesarienne S
 	gen `var'=0
 } 
 
-gen double yd_pre= dtot / hhsize
 
+*-------------------------------------
+// Nowcasting
+*-------------------------------------
 
-* Now casting from 2019 to 2024
+gen double yd_pre = dtot / hhsize
+
 if $nowcast24 == 1 {
 
 	replace zref = zref * ${nc_ipc_gr}
@@ -75,12 +62,11 @@ else {
 	merge 1:1 hhid using `Transfers_InKind' , nogen
 }
 
-*All policies, regarless of them being taxes or subsidies, should be positive 
+* All policies, regarless of them being taxes or subsidies, should be positive 
 
-*Gross market income that is going to be used as basis of all calculations:
-*merge 1:1 hhid using "$presim/gross_ymp_pc.dta" , nogen
+* Gross market income that is going to be used as basis of all calculations:
+* merge 1:1 hhid using "$presim/gross_ymp_pc.dta" , nogen
 gen ymp_pc=yd_pre
-	
 
 	local Directaxes 		"${Directaxes}"
 	local Contributions 	"${Contributions}" 
@@ -95,7 +81,10 @@ gen ymp_pc=yd_pre
 		
 	di "`Directaxes' /// `Contributions' /// `DirectTransfers' /// `Subsidies' /// `Indtaxes' /// `InKindTransfers'"
 
-
+*-------------------------------------
+// Per cápita variables
+*-------------------------------------
+	
 	foreach i in `Directaxes' `Contributions' `DirectTransfers'  `Indtaxes' `subsidies' `InKindTransfers' {
 		replace `i'=0 if `i'==.
 	}
@@ -253,11 +242,16 @@ gen inktransf_educ_pc = am_educ_1_pc + am_educ_2_pc + am_educ_3_pc + am_educ_4_p
 gen inktransf_health = am_health
 gen inktransf_health_pc = am_health_pc
 
-gen am_prog_sa = am_prog_1 + am_prog_2 + am_prog_3 + am_prog_4
-gen am_prog_sa_pc = am_prog_1_pc + am_prog_2_pc + am_prog_3_pc + am_prog_4_pc
+*gen am_prog_sa = am_prog_1 + am_prog_2 + am_prog_3 + am_prog_4
+*gen am_prog_sa_pc = am_prog_1_pc + am_prog_2_pc + am_prog_3_pc + am_prog_4_pc
 
 gen am_prog = am_prog_1 + am_prog_2 + am_prog_3 + am_prog_4
 gen am_prog_pc = am_prog_1_pc + am_prog_2_pc + am_prog_3_pc + am_prog_4_pc
+
+gen am_prog_sa = am_prog_1 + am_prog_2 + am_prog_3 + am_prog_4 //+ subsidy_emel_direct
+gen am_prog_sa_pc = am_prog_1_pc + am_prog_2_pc + am_prog_3_pc + am_prog_4_pc //+ subsidy_emel_direct_pc
+
+
 
 gen ss_ben_sa = ss_ben_old + ss_ben_other
 gen ss_ben_sa_pc = ss_ben_old_pc + ss_ben_other_pc

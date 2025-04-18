@@ -43,39 +43,6 @@ save "${presim}/Aux_informality.dta", replace
 drop product_name
 reshape wide informal_purchase, i(decile_expenditure) j(coicop)
 
-*-------------------------------------
-// Sector: IO Matrix
-*-------------------------------------
-
-import excel "$data_sn/IO_Matrix.xlsx", sheet("IO_matrix") firstrow clear
-	 
-local cats "fixed elec_sec emel_sec fuel_sec"  	 
-	 
-local fixed 	"8 9" 
-local elec_sec  "8"
-local emel_sec 	"1"
-local fuel_sec 	"9 12"
-
-
-foreach i of local cats {
-	gen `i' = 0
-	foreach j of local `i' {
-		di "`i'", "`j'"
-		replace `i' = 1 if sector == `j'
-	}
-} 
-
-save "$presim/IO_Matrix.dta", replace
-
-
-*-------------------------------------
-// IO_percentage: Products - Sector
-*-------------------------------------
-
-import excel "$xls_sn", sheet("IO_percentage") firstrow clear
-
-save "$presim/IO_percentage.dta", replace
-	
 
 *-------------------------------------
 // Maps

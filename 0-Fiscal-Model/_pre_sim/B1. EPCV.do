@@ -1,5 +1,5 @@
 /*============================================================================*\
- Presim Data - Mauritania
+ EPCV Survey Data
  Authors: Gabriel Lombo
  Start Date: March 2025
  Update Date: 
@@ -32,11 +32,11 @@ set seed 123456789
 global ppp = 12.44526 * 10
 global ppp_ipc19 = 1.05471		
 
-* Labels
+/* Labels
 global line_1
 global line_2
 global line_3
-	
+*/	
 *-------------------------------------
 // Household: Household Data
 *-------------------------------------

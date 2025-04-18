@@ -6,7 +6,7 @@
  
 \*==============================================================================*/
   
-*scalar t1_pre = c(current_time)
+scalar t1_pre = c(current_time)
  
 *-------------------------------------
 // A. Auxiliar Data
@@ -48,14 +48,10 @@ if (1) qui: do "${thedo_pre}/D1. Pullglobals.do"
 
 if (1) qui: do "${thedo_pre}/D2. Consumption Netting Down.do"
 
+scalar t2_pre = c(current_time)
 
-noi di "You run the pre simulation do files"
-
-
-*scalar t2_pre = c(current_time)
-
-
-*display "Running the pre-sim tool took " (clock(t2_pre, "hms") - clock(t1_pre, "hms")) / 1000 " seconds"
+di as error "You run the pre simulation do files: Running the pre-sim tool took " ///
+			(clock(t2_pre, "hms") - clock(t1_pre, "hms")) / 1000 " seconds"
 
 
 

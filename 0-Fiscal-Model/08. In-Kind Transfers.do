@@ -1,49 +1,26 @@
-*-----------------------------------------------------------------------------
-* Program: Program for the Impact of Fiscal Reforms - CEQ Senegal
-* Author: Julieth Pico
-* Date: June 2020
-* Version: 1.0
+/*============================================================================*\
+ Presim Data - Mauritania
+ Authors: Gabriel Lombo
+ Start Date: March 2025
+ Update Date: 
+\*============================================================================*/
 
-*Version 2: 
-*Oct 2022: 
-	
-	// 1. Definition of beneficiaries as user of public hospitals in q07 and q23 omitted some public hospital categories for Q23: 4 Poste de santé, 5	Case de santé,  6	Autre public (y compris maternité rurale).
-	
-	// Note: 
-		//  To be decided if use eligibility vs use approach. 
-			// Eligibility approach needs adm data on coverage because coverage of CMU is relatively low  
-			// Use approach does no capture household who did not suffer from illness during the period asked for the survey
-*Version 3: 
-
-
-*--------------------------------------------------------------------------------
-*--------------------------------------------------------------------------------
-
-/********** Education *******/
-
-*global run_qeduc = 0
-*global run_qhealth = 0
-*global mont_health_pc 20220
+*===============================================================================
+// Education
+*===============================================================================
 
 
 use "$presim/inkind_transfers2.dta", clear 
 
 merge m:1 hhid using "$presim/01_menages.dta", assert(3) keepusing(hhweight hhsize) nogen
 
-*----- Values
-*local tot_1 	1591417508
-*local tot_2 	17175917502
-*local tot_3 	5385512447
-*local tot_4 	2928263675
-*local tot_7		4605851859
-*local tot_8 	4373212362
-*local tot_11 	2094254648
-*local tot_13 	1700723018
+
+*-------------------------------------
+// Allocation
+*-------------------------------------
 
 local policy 1 2 3 4 7 // 8
-
 gen uno = 1
-
 foreach i of local policy {
 	qui sum level_`i' [iw=hhweight]
 	
@@ -56,11 +33,11 @@ foreach i of local policy {
 
 gen bened = am_educ_2 > 0
 	
-* Add Quality only to primary
+*-------------------------------------
+// Low quality reduction
+*-------------------------------------
+
 if $run_qeduc == 1{
-	
-	*local index1_r 0.84765 
-	*local index1_u 1.21619
 
 	gen index = .
 	replace index = ${qeduc_index1_u} if milieu == 1
@@ -72,6 +49,11 @@ if $run_qeduc == 1{
 	tabstat am_*_2* uno [aw = hhweight], s(mean sum) by(milieu)
 
 }
+
+*-------------------------------------
+// Data by household
+*-------------------------------------
+
 
 collapse (sum) am_educ*, by(hhid)
 
@@ -85,14 +67,18 @@ save `Transfers_InKind_Education'
 
 global educ_var am_educ_1 am_educ_2 am_educ_3 am_educ_4 //am_educ_8
 
-/********** Health *******/
-
-
+*===============================================================================
+// Health
+*===============================================================================
 
 use "$presim/inkind_transfers.dta", clear 
  
 merge 1:1 hhid using "$presim/01_menages.dta", assert(3) keepusing(hhweight hhsize) nogen
  
+*-------------------------------------
+// Allocation
+*-------------------------------------
+
  
 sum ht_use [iw=hhweight]
 *local beneficiaries `r(sum)' // dis "`sante_beneficiare'"
@@ -113,9 +99,11 @@ sum am_health, d
  
 gen benhe = am_health > 0 & am_health != .
  
- 
-* Add Quality
-if $run_qhealth == 1{
+*-------------------------------------
+// Low quality reduction
+*-------------------------------------
+
+if $run_qhealth == 1 {
 
 	gen index=.
 
@@ -132,6 +120,9 @@ if $run_qhealth == 1{
 		
 }
 
+*-------------------------------------
+// Data by household
+*-------------------------------------
 
 collapse (sum) am_health*, by(hhid)
 

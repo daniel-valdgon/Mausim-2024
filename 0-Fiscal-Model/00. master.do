@@ -12,17 +12,21 @@ macro drop _all
 global path     	".../MauSim_Tool"
 
 
-
 *===============================================================================
 // Set Up - Parameters
 *===============================================================================
+
 *----- Do not modify after this line
+global tool         "${path}/03-Outputs"
+global thedo     	"${path}/02-Scripts" 
 
 if "`c(username)'"=="gabriellombomoreno" {
-			
-	global pathdata     "/Users/gabriellombomoreno/Documents/WorldBank/Data/DATA_MRT"
 	
+	global pathdata     "/Users/gabriellombomoreno/Documents/WorldBank/Data/DATA_MRT"
 	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/01 MRT Fiscal Incidence Analysis"
+	
+	global tool         "${path}/03-Outputs/`c(username)'/Tool"	// 	  
+	global thedo     	"${path}/02-Scripts/`c(username)'/0-Fiscal-Model" // 
 	
 }
 
@@ -38,13 +42,11 @@ if "`c(username)'"=="gabriellombomoreno" {
 
 	* Tool	
 	*global tool         "${path}/03-Outputs" 
-	global tool         "${path}/03-Outputs/`c(username)'/Tool"	// 	  
 	global xls_sn 		"${tool}/MRT_Sim_tool_VI.xlsx"
 	global xls_out    	"${tool}/MRT_Sim_tool_VI.xlsx"	
 	
 	* Scripts	
 	*global thedo     	"${path}/02-Scripts"		
-	global thedo     	"${path}/02-Scripts/`c(username)'/0-Fiscal-Model" // 
 	global theado       "$thedo/ado"	
 	global thedo_pre    "$thedo/_pre_sim"
 	
@@ -87,7 +89,7 @@ foreach f of local files{
 // Run pre_simulation files (Only run once)
 *===============================================================================
 
-if (0) qui: do "${thedo_pre}/00. Master - Presim.do"
+if (1) qui: do "${thedo_pre}/00. Master - Presim.do"
 
 *===============================================================================
 // Run simulation files
@@ -101,52 +103,50 @@ if (0) qui: do "${thedo}/00a. Dictionary.do"
 
 if (1) qui: do "${thedo}/00b. Pullglobals.do"
 
-
 *-------------------------------------
-// 01. Social Security Contributions
-*-------------------------------------
-
-if (1) qui: do "${thedo}/01. Social Security Contributions.do" 
-
-*-------------------------------------
-// 02. Direct Taxes
+// 01. P1 - Direct Taxes
 *-------------------------------------
 
-if (1) qui: do "${thedo}/02. Direct Taxes - Income Tax.do" 
+if (1) qui: do "${thedo}/01. Direct Taxes - Income Tax.do" 
 
 *-------------------------------------
-// 03. Direct Transfers
+// 02. P2 - Social Security Contributions
+*-------------------------------------
+
+if (1) qui: do "${thedo}/02. Social Security Contributions.do" 
+
+*-------------------------------------
+// 03. P3 - Direct Transfers
 *-------------------------------------
 
 if (1) qui: do "${thedo}/03. Direct Transfers.do" 
 
 *-------------------------------------
-// 04. Indirect Taxes - Custom Duties
+// 04. P4 - Indirect Taxes - Custom Duties
 *-------------------------------------
 
 if (1) qui: do "${thedo}/04. Indirect Taxes - Custom Duties.do" 
 
 *-------------------------------------
-// 05. Indirect Subsidies
+// 05. P5 - Indirect Subsidies
 *-------------------------------------
 
 if (1) qui: do "${thedo}/05. Indirect Subsidies.do" 
 
 *-------------------------------------
-// 06. Indirect Taxes - Excises 
+// 06. P4 - Indirect Taxes - Excises 
 *-------------------------------------
 
 if (1) qui: do "${thedo}/06. Indirect Taxes - Excises.do"
  
 *-------------------------------------
-// 06. Indirect Taxes - VAT 
+// 06. P4 - Indirect Taxes - VAT 
 *-------------------------------------
- 
  
 if (1) qui: do "${thedo}/07. Indirect Taxes - VAT.do" 
 
 *-------------------------------------
-// 05. In-Kind Transfers
+// 05. P6 - In-Kind Transfers
 *-------------------------------------
 
 if (1) qui: do "${thedo}/08. In-Kind Transfers.do" 
@@ -178,7 +178,7 @@ shell ! "$xls_out"
 
 scalar t2 = c(current_time)
 
-display "Running the complete tool took " ///
+display as error "Running the complete tool took " ///
 	(clock(t2, "hms") - clock(t1, "hms")) / 1000 " seconds"
 
 

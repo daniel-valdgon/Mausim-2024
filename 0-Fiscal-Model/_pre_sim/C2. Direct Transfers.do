@@ -1,14 +1,10 @@
-
-
-/*
-Author     : Gabriel Lombo
-Start date : 24 April 2024
-Last Update: 24 April 2024 
-
-Objective  : Presimulation for Direct Transfer for the purpose of fiscal microsimulation to study the incidence of Direct transfer
-           **I compile and adopt the key characteristics of the household necessary for assignment of social programmes 
-*/
-
+/*============================================================================*\
+ Direct Transfers
+ Authors: Gabriel Lombo
+ Start Date: April 2024
+ Update Date: April 2025
+\*============================================================================*/
+ 
 
 *====================================================================
 dis "=======       Defining allocation on direct transfers		====="
@@ -38,7 +34,6 @@ sum PMT_3
 replace PMT_3 = r(min) if hh_prog_2 == 1	
 	
 gen PMT_4 = PMT	
-
 
 	
 *--------------Adding seeds
@@ -168,15 +163,6 @@ gen preandpri=(ben_pre_school== 1 | ben_primary==1)
 gen pmt_seed_4= uniform()
 replace pmt_seed = pmt_seed_4 - hh_prog_3
 
-*gen ter_seed= uniform()
-*gen ter2_seed= uniform()
-
-
-*gen cmu50_seed=runiform()
-*gen pben_sesame_seed=runiform()
-*gen pben_moins5_seed=runiform()
-*gen cesarienne_seed=runiform()
-*gen cmu100_seed=runiform()
 
 save "$presim/07_educ.dta", replace
 

@@ -34,15 +34,15 @@ if "`c(username)'"=="gabriellombomoreno" {
 	
 	*----- Figures parameters
 	global numscenarios	1
-	global proj_1		"MRT_Ref_2019_v2" 
-	global proj_2		"MRT_Sim1_2019"
-	global proj_3		"MRT_Sim2_2019"
+	global proj_1		"Sim7_SP_EU_2024" 
+	global proj_2		""
+	global proj_3		""
 	
 	
-	global policy		"subsidy_f1_direct subsidy_f2_direct subsidy_f3_direct"
+	global policy		"am_prog_sa am_prog_1 am_prog_2 am_prog_3 am_prog_4 subsidy_emel_direct"
 	
-	global income		"yd" // ymp, yn, yd, yc, yf
-	global income2		"yc"
+	global income		"ymp" // ymp, yn, yd, yc, yf
+	global income2		"yd"
 	global reference 	"zref" // Only one	
 	
 	*----- Data
@@ -194,7 +194,7 @@ export excel "$xls_out", sheet(Other) first(variable) sheetreplace cell(A1)
 /*-------------------------------------------------------/
 	2. Netcashflow
 /-------------------------------------------------------*/
-/*
+
 global allpolicy	"dirtax_total ss_contribs_total dirtransf_total subsidy_total indtax_total inktransf_total"
 forvalues scenario = 1/$numscenarios {
 
@@ -241,7 +241,7 @@ forvalues scenario = 1/$numscenarios {
 
 export excel "$xls_out", sheet(Netcash) first(variable) sheetreplace cell(A1)
 
-*/
+
 
 
 /*-------------------------------------------------------/

@@ -1,17 +1,17 @@
-/*--------------------------------------------------------------------------------
-*--------------------------------------------------------------------------------
- Program: CEQ Mauritania
- Author: Gabriel
- Date: 2024
- 
-
-*--------------------------------------------------------------------------------*/
-
+/*============================================================================*\
+ Direct Taxes simulation
+ Authors: Gabriel Lombo
+ Start Date: January 2024
+ Update Date: April 2025
+\*============================================================================*/
+  
 use  "$presim/02_Income_tax_input.dta", replace 
 
 keep hhid allow* an_income_* tax_ind_* regime_*
 
-*------ Allowances PIT
+*-------------------------------------
+// Allowances
+*-------------------------------------
 
 local i = 1
 	
@@ -22,7 +22,10 @@ gen aux3 = allow2_ind_`i' * ${DirTax_1_allow3_val} * an_income_`i'
 egen allow_`i' = rowtotal(aux1 aux2 aux3)	
 replace	allow_`i' = (-1 * allow_`i')
 	
-*------ Tax Base	
+*-------------------------------------
+// Tax Base
+*-------------------------------------
+	
 	
 egen tax_base_`i' = rowtotal(an_income_`i' allow_`i')	
 replace tax_base_`i' = 0 if tax_base_`i' < 0	
@@ -33,10 +36,10 @@ gen tax_base_3 = an_income_3
 drop aux1 aux2 aux3 allow1_ind_1 allow2_ind_1 allow_1
 
 
-*global names_DirTax "Tax1_A"
+*-------------------------------------
+// Tax Liability
+*-------------------------------------
 
-global all_regimes "A B"
-global all_dirtax "Tax1 Tax2 Tax3"
 
 * Create Tax Base for all taxes
 local n1 = wordcount("$all_dirtax")
@@ -70,18 +73,21 @@ forvalues i = 1/`n1' {
 	}	
 }	
 
+*-------------------------------------
+// Data by household
+*-------------------------------------
+
 order hhid *_1 *_2 *_3
 
 if $devmode== 1 {
 	save "$tempsim/Direct_taxes_complete.dta", replace
 }
 
-
 tempfile Direct_taxes_complete
 save `Direct_taxes_complete'
 
 
-*Tax data collapsed 
+* Tax data collapsed 
 collapse (sum) income_tax_1 income_tax_2 (max) income_tax_3, by(hhid)
 
 label var income_tax_1 "IRPP"
