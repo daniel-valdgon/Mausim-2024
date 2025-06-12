@@ -138,6 +138,10 @@ drop cod_reduit
 ren * value_*
 ren value_codpr codpr
 
+foreach i of varlist value_vatrate_ - value_cdimp_ {
+	cap tostring `i', replace
+}
+
 reshape long value_, i(codpr) j(var_, string)
 
 tostring codpr, replace

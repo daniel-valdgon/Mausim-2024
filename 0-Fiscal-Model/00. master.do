@@ -17,18 +17,16 @@ global path     	".../MauSim_Tool"
 *===============================================================================
 
 *----- Do not modify after this line
-global tool         "${path}/03-Outputs"
-global thedo     	"${path}/02-Scripts" 
 
 if "`c(username)'"=="gabriellombomoreno" {
 	
 	global pathdata     "/Users/gabriellombomoreno/Documents/WorldBank/Data/DATA_MRT"
-	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/01 MRT Fiscal Incidence Analysis"
-	
-	global tool         "${path}/03-Outputs/`c(username)'/Tool"	// 	  
-	global thedo     	"${path}/02-Scripts/`c(username)'/0-Fiscal-Model" // 
-	
+	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/01 MRT Fiscal"
+
 }
+
+	*local folder = substr("$path", strrpos("$path", "/") + 2, length("$path"))
+	*di "`folder'"
 
 	*version 18
 
@@ -40,12 +38,14 @@ if "`c(username)'"=="gabriellombomoreno" {
 	global tempsim      "${path}/01-Data/3_temp_sim"
 	global data_out    	"${path}/01-Data/4_sim_output"
 
-	* Tool	
+	* Tool
+	global tool         "${path}/03-Outputs/`c(username)'/Tool"	// 	 
 	*global tool         "${path}/03-Outputs" 
 	global xls_sn 		"${tool}/MRT_Sim_tool_VI.xlsx"
 	global xls_out    	"${tool}/MRT_Sim_tool_VI.xlsx"	
 	
 	* Scripts	
+	global thedo     	"${path}/02-Scripts/`c(username)'/0-Fiscal-Model" // 	
 	*global thedo     	"${path}/02-Scripts"		
 	global theado       "$thedo/ado"	
 	global thedo_pre    "$thedo/_pre_sim"
@@ -89,7 +89,7 @@ foreach f of local files{
 // Run pre_simulation files (Only run once)
 *===============================================================================
 
-if (1) qui: do "${thedo_pre}/00. Master - Presim.do"
+if (0) qui: do "${thedo_pre}/00. Master - Presim.do"
 
 *===============================================================================
 // Run simulation files
