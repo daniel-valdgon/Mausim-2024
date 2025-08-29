@@ -138,6 +138,10 @@ drop cod_reduit
 ren * value_*
 ren value_codpr codpr
 
+foreach i of varlist value_vatrate_-value_cdimp_  {
+	cap tostring `i' , replace
+} 
+
 reshape long value_, i(codpr) j(var_, string)
 
 tostring codpr, replace
@@ -220,5 +224,20 @@ foreach t of local types {
 }
 
 	
+/*-------------------------------------------------------/
+	8. Correct parameters
+/-------------------------------------------------------*/
 
+global params_MRO	"DirTax_1_allow1_val DirTax_1_allow2_val soc_cont cost_elec_dom cost_elec_prof tariff_elec_prof TariffT1_PDPP TariffT2_PDPP TariffT3_PDPP TariffT4_PDPP TariffT5_PDPP TariffT6_PDPP TariffT7_PDPP TariffT1_WDPP TariffT2_WDPP TariffT3_WDPP TariffT4_WDPP TariffT5_WDPP TariffT6_WDPP TariffT7_WDPP TariffT1_PDMP TariffT2_PDMP TariffT3_PDMP TariffT4_PDMP TariffT5_PDMP TariffT6_PDMP TariffT7_PDMP TariffT1_WDMP TariffT2_WDMP TariffT3_WDMP TariffT4_WDMP TariffT5_WDMP TariffT6_WDMP TariffT7_WDMP SubventionT1_PDPP SubventionT2_PDPP SubventionT3_PDPP SubventionT4_PDPP SubventionT5_PDPP SubventionT6_PDPP SubventionT7_PDPP SubventionT1_PDMP SubventionT2_PDMP SubventionT3_PDMP SubventionT4_PDMP SubventionT5_PDMP SubventionT6_PDMP SubventionT7_PDMP SubventionT1_WDPP  SubventionT2_WDPP SubventionT3_WDPP SubventionT4_WDPP SubventionT5_WDPP SubventionT6_WDPP SubventionT7_WDPP SubventionT1_WDMP SubventionT2_WDMP SubventionT3_WDMP SubventionT4_WDMP SubventionT5_WDMP SubventionT6_WDMP SubventionT7_WDMP max_am_temwine mont_health_pc am_educ_tot_1 am_educ_tot_2 am_educ_tot_3 am_educ_tot_4 am_educ_tot_7"
+
+foreach i of global params_MRO {
+	cap global `i' = $`i' * 10
+}
+	
+	
+	
+	
+	
+	
+	
 

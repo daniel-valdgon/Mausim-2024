@@ -52,6 +52,7 @@ tab codpr if abs(dif4)>0.0001
 
 tabstat achats_net_sub achats_avec_CD, s(sum mean p50)
 
+
 if $asserts_ref2018 == 1 {
 	assert abs(dif4)<0.0001
 }

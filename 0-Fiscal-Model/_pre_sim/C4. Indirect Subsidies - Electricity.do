@@ -88,12 +88,20 @@ drop if hhweight == .
 gen hh_elec_1 = I8 == 1 // Option 1: HH uses electricity
 gen hh_elec_2 = G7 == 1 // Option 2: HH principal source of electricity
 
-
 global purchases depan
 
 gen hh_elec_3 = $purchases > 0 // Option 3: Positive expenses on depan 
 gen hh_elec = $purchases > 0 & I8 == 1
 
+/*
+tabm hh_elec* [iw = hhweight], m row nofreq
+tabm hh_elec*, m
+
+tab hh_elec_2 hh_elec_3 [iw = hhweight] , m cell
+tab hh_elec_2 hh_elec_3 , m cell
+tab hh_elec_1 hh_elec_3 [iw = hhweight] , m cell
+tab hh_elec_1 hh_elec_3 , m cell
+*/
 /*------------------------------------------------
 * Allocation of domestic and social users
 ------------------------------------------------*/

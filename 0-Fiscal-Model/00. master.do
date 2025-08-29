@@ -2,32 +2,42 @@
  Simulation Tool - Mauritania
  Authors: Gabriel Lombo, Madi Mangan, Andrés Gallegos, Daniel Valderrama
  Start Date: January 2024
- Update Date: March 2025
+ Update Date: June 2025
 \*============================================================================*/
   
 clear all
 macro drop _all
  
-*----- Define your directory path
-global path     	".../MauSim_Tool"
+*----- Modifier les deux paramètres suivants selon vos préférences
+global 	path     	".../MauSim_Tool" // Choisissez le chemin de votre répertoire
 
+
+
+
+*----- Ne pas modifier après cette ligne
+global tool         "${path}/03-Outputs"
+global thedo     	"${path}/02-Scripts"	
 
 *===============================================================================
 // Set Up - Parameters
 *===============================================================================
 
-*----- Do not modify after this line
-global tool         "${path}/03-Outputs"
-global thedo     	"${path}/02-Scripts" 
-
 if "`c(username)'"=="gabriellombomoreno" {
-	
-	global pathdata     "/Users/gabriellombomoreno/Documents/WorldBank/Data/DATA_MRT"
-	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/01 MRT Fiscal Incidence Analysis"
-	
-	global tool         "${path}/03-Outputs/`c(username)'/Tool"	// 	  
-	global thedo     	"${path}/02-Scripts/`c(username)'/0-Fiscal-Model" // 
-	
+
+	if (0) { 	// Public Repository
+		global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/01 MRT Fiscal/00-Public_repository/MauSim_Tool_MayWorkshop_changes"
+		global tool         "${path}/03-Outputs"
+		global thedo     	"${path}/02-Scripts"		
+	}	
+	else { 		// MauSim Tool
+		global pathdata     "/Users/gabriellombomoreno/Documents/WorldBank/Data/DATA_MRT"
+		global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/01 MRT Fiscal"
+		
+		global tool         "${path}/03-Outputs/`c(username)'/Tool"
+		global thedo     	"${path}/02-Scripts/`c(username)'/0-Fiscal-Model"
+		global data_sn 		"${pathdata}/MRT_2019_EPCV/Data/STATA/1_raw"
+		global data_other   "${pathdata}/MRT_FIA_OTHER"		
+	}
 }
 
 	*version 18
@@ -74,7 +84,7 @@ foreach command of local user_commands {
 		ssc install `command'
 	}
 }
-	
+	gabs
 *===============================================================================
 // Run ado files
 *===============================================================================
@@ -84,12 +94,11 @@ foreach f of local files{
 	 qui: cap run "$theado//`f'"
 }
 
-
 *===============================================================================
 // Run pre_simulation files (Only run once)
 *===============================================================================
 
-if (1) qui: do "${thedo_pre}/00. Master - Presim.do"
+if (0) qui: do "${thedo_pre}/00. Master - Presim.do"
 
 *===============================================================================
 // Run simulation files
@@ -165,10 +174,8 @@ if (1) qui: do "${thedo}/10. Outputs - Tool.do"
 
 if (0) qui: do "${thedo}/10. Outputs - Figures.do" 
 
-
 if "`sce_debug'"=="yes" dis as error  ///
 	"You have not turned off the debugging phase in ind tax dofile !!!"
-
 
 *===============================================================================
 // Launch Excel
@@ -179,8 +186,8 @@ shell ! "$xls_out"
 scalar t2 = c(current_time)
 
 display as error "Running the complete tool took " ///
-	(clock(t2, "hms") - clock(t1, "hms")) / 1000 " seconds"
-
+	(clock(t2, "hms") - clock(t1, "hms")) / 1000 " seconds. " ///
+	"Scenario saved with the name : ${scenario_name_save}"
 
 * End of do-file
 	

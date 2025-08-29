@@ -36,8 +36,6 @@ gen kerosene = codpr == 234
 gen gasoline = codpr == 254
 gen gasoil = codpr == 255
 
-
-
 global fuel "lpg kerosene gasoline gasoil"
 
 foreach i of global fuel {
@@ -75,6 +73,27 @@ keep hhid c_*
 
 
 save "$presim/08_subsidies_fuel.dta", replace
+
+
+use "$presim/08_subsidies_fuel.dta", clear
+
+drop c_fuel
+
+// lgp - butane, gasoil - diesel
+
+gen q_gasoline = c_gasoline / 43.64
+gen q_diesel = c_gasoil / 38.46
+gen q_butane = c_lpg / 41.376
+
+save "$presim/08_subsidies_fuel_quantities.dta", replace
+
+
+
+
+
+
+
+
 
 
 

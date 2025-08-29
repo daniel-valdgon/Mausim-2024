@@ -25,7 +25,7 @@ global all_bypolicy "dirtax_total income_tax_1 income_tax_3 ss_contribs_total di
 * Gabriel - Personal Computer
 if "`c(username)'"=="gabriellombomoreno" {			
 	global pathdata     "/Users/gabriellombomoreno/Documents/WorldBank/Data/DATA_MRT" 
-	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/01 MRT Fiscal Incidence Analysis"
+	global path     	"/Users/gabriellombomoreno/Documents/WorldBank/Projects/01 MRT Fiscal"
 	
 	global tool         "${path}/03-Outputs/`c(username)'/Tool" 	
 	global thedo     	"${path}/02-Scripts/`c(username)'/0-Fiscal-Model"
@@ -33,13 +33,13 @@ if "`c(username)'"=="gabriellombomoreno" {
 }
 	
 	*----- Figures parameters
-	global numscenarios	1
-	global proj_1		"Sim7_SP_EU_2024" 
-	global proj_2		""
+	global numscenarios	2
+	global proj_1		"MRT_Ref_2019" 
+	global proj_2		"MRT_DirTransf_2024"
 	global proj_3		""
 	
 	
-	global policy		"am_prog_sa am_prog_1 am_prog_2 am_prog_3 am_prog_4 subsidy_emel_direct"
+	global policy		"$all_bypolicy"
 	
 	global income		"ymp" // ymp, yn, yd, yc, yf
 	global income2		"yd"
@@ -55,7 +55,7 @@ if "`c(username)'"=="gabriellombomoreno" {
 
 	*----- Tool
 	global xls_sn 		"${tool}/MRT_Sim_tool_VI.xlsx"
-	global xls_out    	"${tool}/Figures_print.xlsx"	
+	global xls_out    	"${tool}/Figures_print_ref2019.xlsx"	
 	
 	*----- Ado	
 	global theado       "$thedo/ado"

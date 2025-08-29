@@ -12,7 +12,7 @@
 
 	
 	
-use "$data_sn/Datain/individus_2019.dta", clear
+use "$data_sn/individus_2019.dta", clear
 	
 ren hid hhid	
 	

@@ -63,6 +63,11 @@ if $load_scenario == 0 & $save_scenario == 0 {
 *===============================================================================
 
 if $save_scenario == 1 {
+	
+	foreach i of global params_MRO {
+		cap global `i' = $`i' / 10
+	}	
+	
 	global c:all globals
 	macro list c
 
@@ -81,6 +86,9 @@ if $save_scenario == 1 {
 	foreach gloname in c thedo_pre theado thedo xls_sn data_out tempsim presim data_dev data_sn path S_4 S_3 S_level S_ADO S_StataSE S_FLAVOR S_OS S_OSDTL S_MACH save_scenario load_scenario devmode asserts_ref2018 {
 		cap drop if globalname == "`gloname'"
 	}
+	
+
+
 
 	export excel "$xls_out", sheet("p_${scenario_name_save}") sheetreplace first(variable)
 	noi dis "{opt All the parameters of scenario ${scenario_name_save} have been saved to Excel.}"

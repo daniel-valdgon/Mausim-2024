@@ -48,7 +48,7 @@ reshape wide informal_purchase, i(decile_expenditure) j(coicop)
 // Maps
 *-------------------------------------
 
-shp2dta using "$data_other/Shapes/mrt_admbnda_adm1_ansade_20240327.shp", database("$presim/Aux_mrtdb") coordinates("$presim/Aux_mrtcoord") genid(id) replace
+*shp2dta using "$data_other/Shapes/mrt_admbnda_adm1_ansade_20240327.shp", database("$presim/Aux_mrtdb") coordinates("$presim/Aux_mrtcoord") genid(id) replace
 
 
 

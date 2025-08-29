@@ -13,7 +13,7 @@ set seed 123456789
 	1. Distances by region
 /-------------------------------------------------------*/
 	
-*----- Read Data aun unique 
+/*----- Read Data aun unique 
  
 * Agglomerations
 import delimited "$data_other/QGis/Agglomerations.csv", clear
@@ -162,14 +162,14 @@ replace wilaya = "Dakhlett Nouadibou" if adm1_en == "Dakhlet Nouadibou"
 
 
 save "$presim/distances_indicators.dta", replace
-
+*/
 
 /*-------------------------------------------------------/
 	2. Survey
 /-------------------------------------------------------*/
 
 *----- Accessibility
-use "$data_sn/Datain/Capital_Social_2019.dta", clear
+use "$data_sn/Capital_Social_2019.dta", clear
 
 * ID
 tostring US_ORDRE A7, replace
@@ -189,7 +189,7 @@ save `cap_social', replace
 
 
 *----- Infrastructure
-use "$data_sn/Datain/Distance_Infra_2019.dta", clear
+use "$data_sn/Distance_Infra_2019.dta", clear
 
 * ID
 tostring US_ORDRE A7, replace
@@ -210,7 +210,7 @@ save `dist_sy', replace
 
 
 *----- Use of health service	
-use "$data_sn/Datain/individus_2019.dta", clear
+use "$data_sn/individus_2019.dta", clear
 
 ren hid hhid
 
@@ -289,10 +289,10 @@ merge 1:1 hhid using "$presim/01_menages.dta", keep(3) keepusing(hhweight hhsize
 
 decode A1, gen(wilaya) 
 
-merge m:1 wilaya using "$presim/distances_indicators.dta", keep(1 3) gen(mr_dist)
+*merge m:1 wilaya using "$presim/distances_indicators.dta", keep(1 3) gen(mr_dist)
 
-*---- Analytics
-tab ht_dist id_c_dist [iw = hhweight] if milieu == 1, m nofreq cell
+/*---- Analytics
+tab ht_dist /*id_c_dist*/ [iw = hhweight] if milieu == 1, m nofreq
 
 tabstat id_d_hc*_1 [aw = hhweight], s(sum) by(wilaya)
 tabstat id_d_hc*_2 [aw = hhweight], s(sum) by(wilaya)
@@ -313,9 +313,9 @@ mat colnames B = 0 1 0 1 0 1 0 1 0 1
 
 matlist A
 matlist B
+*/
 
-
-keep hhid location ht_use ht_pub ht_times ht_dist id_c_dist id_nt_hc1 id_nt_hc2 id_nt_hc3 id_nt_hc4 id_nt_hc5 id_nt_hc6 cnam
+keep hhid location ht_use ht_pub ht_times ht_dist /*id_c_dist id_nt_hc1 id_nt_hc2 id_nt_hc3 id_nt_hc4 id_nt_hc5 id_nt_hc6*/ cnam
 
 
 save "$presim/inkind_transfers.dta", replace
@@ -326,7 +326,7 @@ save "$presim/inkind_transfers.dta", replace
 /-------------------------------------------------------*/
 
 
-use "$data_sn/Datain/individus_2019.dta", clear
+use "$data_sn/individus_2019.dta", clear
 
 ren hid hhid
 

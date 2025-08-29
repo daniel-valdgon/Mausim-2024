@@ -109,6 +109,8 @@ forvalues i = 1/3 {
 *-------------------------------------
 
 merge 1:m hhid  using  "$presim/07_educ.dta", nogen keepusing(hhid pmt_seed_4 eleg_4) // not matched ae
+
+*keep hhid hhweight departement PMT_4 eleg_4 pmt_seed_4	
 	
 forvalues i = 4/4 {
 		

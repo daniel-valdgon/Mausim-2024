@@ -30,7 +30,7 @@ gen double yd_pre = dtot / hhsize
 if $nowcast24 == 1 {
 
 	replace zref = zref * ${nc_ipc_gr}
-	*replace hhweight = hhweight * ${nc_pop_gr}
+	replace hhweight = hhweight * ${nc_pop_gr}
 	
 	replace yd_pre = yd_pre * ${nc_gdp_gr}
 
@@ -78,9 +78,8 @@ gen ymp_pc=yd_pre
 	local taxcs 			`Directaxes' `Indtaxes' `Contributions'
 	local transfers         `DirectTransfers' `Subsidies' `InKindTransfers'
 		
-		
 	di "`Directaxes' /// `Contributions' /// `DirectTransfers' /// `Subsidies' /// `Indtaxes' /// `InKindTransfers'"
-
+	
 *-------------------------------------
 // Per cápita variables
 *-------------------------------------
@@ -242,16 +241,11 @@ gen inktransf_educ_pc = am_educ_1_pc + am_educ_2_pc + am_educ_3_pc + am_educ_4_p
 gen inktransf_health = am_health
 gen inktransf_health_pc = am_health_pc
 
-*gen am_prog_sa = am_prog_1 + am_prog_2 + am_prog_3 + am_prog_4
-*gen am_prog_sa_pc = am_prog_1_pc + am_prog_2_pc + am_prog_3_pc + am_prog_4_pc
-
 gen am_prog = am_prog_1 + am_prog_2 + am_prog_3 + am_prog_4
 gen am_prog_pc = am_prog_1_pc + am_prog_2_pc + am_prog_3_pc + am_prog_4_pc
 
 gen am_prog_sa = am_prog_1 + am_prog_2 + am_prog_3 + am_prog_4 //+ subsidy_emel_direct
 gen am_prog_sa_pc = am_prog_1_pc + am_prog_2_pc + am_prog_3_pc + am_prog_4_pc //+ subsidy_emel_direct_pc
-
-
 
 gen ss_ben_sa = ss_ben_old + ss_ben_other
 gen ss_ben_sa_pc = ss_ben_old_pc + ss_ben_other_pc
